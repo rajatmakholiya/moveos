@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --teal-900: #04342C;
+  --teal-800: #085041;
+  --teal-700: #0F6E56;
+  --teal-600: #1D9E75;
+  --teal-400: #5DCAA5;
+  --teal-100: #9FE1CB;
+  --teal-50: #E1F5EE;
+
+  --stone-900: #1C1917;
+  --stone-800: #292524;
+  --stone-700: #44403C;
+  --stone-500: #78716C;
+  --stone-300: #D6D3D1;
+  --stone-100: #F5F5F4;
+  --stone-50: #FAFAF9;
+
+  --amber-700: #B45309;
+  --amber-400: #FBBF24;
+  --amber-50: #FFFBEB;
+
+  --red-600: #DC2626;
+  --red-50: #FEF2F2;
+
+  --white: #FFFFFF;
+
+  --surface: var(--white);
+  --surface-raised: var(--stone-50);
+  --surface-inset: var(--stone-100);
+  --border: var(--stone-300);
+  --border-strong: var(--stone-500);
+  --text-primary: var(--stone-900);
+  --text-secondary: var(--stone-500);
+  --text-hint: var(--stone-300);
+  --brand: var(--teal-700);
+  --brand-light: var(--teal-50);
+  --brand-dark: var(--teal-900);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--teal-100);
+  color: var(--teal-900);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -480px 0;
+  }
+  100% {
+    background-position: 480px 0;
+  }
+}
+
+@keyframes toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.pahadi-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: spin 0.7s linear infinite;
+}
+
+.pahadi-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--stone-100) 0,
+    var(--stone-50) 40px,
+    var(--stone-100) 80px
+  );
+  background-size: 480px 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+}

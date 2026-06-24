@@ -1,0 +1,4 @@
+/**
+ * Typography tokens placeholder.
+ */
+export {};

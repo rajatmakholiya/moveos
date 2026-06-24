@@ -1,0 +1,4 @@
+/**
+ * Socket middleware placeholder.
+ */
+export {};

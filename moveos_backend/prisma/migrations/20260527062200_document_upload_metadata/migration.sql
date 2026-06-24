@@ -1,0 +1,10 @@
+ALTER TABLE "DriverDocument"
+  ADD COLUMN "documentNo" TEXT,
+  ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE "VehicleDocument"
+  ADD COLUMN "documentNo" TEXT,
+  ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE "OrganizationDocument"
+  ADD COLUMN "documentNo" TEXT;

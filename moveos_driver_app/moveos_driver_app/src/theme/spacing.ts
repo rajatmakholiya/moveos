@@ -1,0 +1,4 @@
+/**
+ * Spacing scale placeholder.
+ */
+export {};

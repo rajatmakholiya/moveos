@@ -1,0 +1,20 @@
+module.exports = {
+  root: true,
+  extends: '@react-native',
+  ignorePatterns: [
+    'src/features/booking/**',
+    'src/features/home/**',
+    'src/features/location/**',
+    'src/features/payments/**',
+    'src/features/profile/**',
+    'src/features/requests/**',
+    'src/features/ride/**',
+    'src/features/schemes/**',
+    'src/features/trips/components/**',
+    'src/features/trips/hooks/**',
+    'src/features/trips/screens/**',
+    'src/features/onboarding/screens/MainAppPlaceholder.tsx',
+    'src/components/LocationPickerSheet.tsx',
+    'src/types/razorpay.d.ts',
+  ],
+};

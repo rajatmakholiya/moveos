@@ -1,0 +1,146 @@
+{
+  "info": {
+    "name": "Onboarding Service",
+    "_postman_id": "c3d5c6d4-0000-4f3f-8c9c-collection",
+    "description": "Onboarding flow for drivers/admins: session -> profile (OTP) -> consents -> context -> complete.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3006/api" },
+    { "key": "onboardingToken", "value": "" },
+    { "key": "idempotencyKey", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Create Session",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "const token = body?.data?.onboardingToken;",
+              "if (token) {",
+              "  pm.collectionVariables.set('onboardingToken', token);",
+              "}",
+              "const sessionId = body?.data?.sessionId;",
+              "if (sessionId) {",
+              "  pm.collectionVariables.set('sessionId', sessionId);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Idempotency-Key", "value": "{{idempotencyKey}}", "disabled": true }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"deviceFingerprint\": \"device-123\",\n  \"referralCode\": \"REF123\",\n  \"appVersion\": \"1.0.0\",\n  \"locale\": \"en-US\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"deviceModel\": \"iPhone15,2\",\n  \"osVersion\": \"17.1\",\n  \"role\": \"DRIVER\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/onboarding/session",
+          "host": ["{{baseUrl}}"],
+          "path": ["onboarding", "session"]
+        }
+      }
+    },
+    {
+      "name": "Profile - Request/Verify OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{onboardingToken}}" },
+          { "key": "X-Idempotency-Key", "value": "{{idempotencyKey}}", "disabled": true }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Jane Driver\",\n  \"phone\": \"+15551234567\",\n  \"email\": \"jane@example.com\",\n  \"resend\": true,\n  \"locale\": \"en-US\",\n  \"timezone\": \"Asia/Kolkata\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/onboarding/profile",
+          "host": ["{{baseUrl}}"],
+          "path": ["onboarding", "profile"]
+        }
+      }
+    },
+    {
+      "name": "Profile - Verify OTP (replace code)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{onboardingToken}}" },
+          { "key": "X-Idempotency-Key", "value": "{{idempotencyKey}}", "disabled": true }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Jane Driver\",\n  \"phone\": \"+15551234567\",\n  \"email\": \"jane@example.com\",\n  \"otp\": \"123456\",\n  \"locale\": \"en-US\",\n  \"timezone\": \"Asia/Kolkata\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/onboarding/profile",
+          "host": ["{{baseUrl}}"],
+          "path": ["onboarding", "profile"]
+        }
+      }
+    },
+    {
+      "name": "Consents",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{onboardingToken}}" },
+          { "key": "X-Idempotency-Key", "value": "{{idempotencyKey}}", "disabled": true }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"locationPermission\": \"granted\",\n  \"notificationsOptIn\": true,\n  \"marketingOptIn\": false,\n  \"locale\": \"en-US\",\n  \"timezone\": \"Asia/Kolkata\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/onboarding/consents",
+          "host": ["{{baseUrl}}"],
+          "path": ["onboarding", "consents"]
+        }
+      }
+    },
+    {
+      "name": "Context",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{onboardingToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/onboarding/context?lat=12.9716&lng=77.5946",
+          "host": ["{{baseUrl}}"],
+          "path": ["onboarding", "context"],
+          "query": [
+            { "key": "lat", "value": "12.9716" },
+            { "key": "lng", "value": "77.5946" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Complete",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{onboardingToken}}" },
+          { "key": "X-Idempotency-Key", "value": "{{idempotencyKey}}", "disabled": true }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/onboarding/complete",
+          "host": ["{{baseUrl}}"],
+          "path": ["onboarding", "complete"]
+        }
+      }
+    }
+  ]
+}

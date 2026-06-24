@@ -1,0 +1,72 @@
+
+> moveos-pwa@0.1.0 dev
+> next dev -p 3010
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3010
+
+ ✓ Starting...
+> [PWA] PWA support is disabled
+> [PWA] PWA support is disabled
+ ✓ Ready in 3.3s
+ ○ Compiling / ...
+ ✓ Compiled / in 592ms (1280 modules)
+ GET / 200 in 733ms
+ GET / 200 in 23ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 727ms (1297 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 756ms
+ GET / 200 in 32ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 27ms
+ ✓ Compiled /profile in 213ms (1291 modules)
+ ✓ Compiled /onboarding in 151ms (1299 modules)
+ ✓ Compiled /onboarding/phone in 106ms (1305 modules)
+ ✓ Compiled /onboarding/otp in 106ms (1311 modules)
+ ✓ Compiled /bookings in 191ms (1319 modules)
+ ✓ Compiled /trips in 336ms (1327 modules)
+ ○ Compiling /bookings/[bookingId]/confirm ...
+ ✓ Compiled /bookings/[bookingId]/confirm in 631ms (1319 modules)
+ GET /bookings 200 in 154ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 616ms (1317 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 677ms
+ ○ Compiling /profile ...
+ ✓ Compiled /profile in 556ms (664 modules)
+ ○ Compiling /trips/[tripId]/book ...
+ ✓ Compiled /trips/[tripId]/book in 777ms (1334 modules)
+ ✓ Compiled /bookings/[bookingId]/confirm in 90ms (678 modules)
+ ✓ Compiled /track/[bookingId] in 353ms (1448 modules)
+ GET / 200 in 126ms
+ ✓ Compiled /driver in 303ms (1451 modules)
+ ✓ Compiled /onboarding in 201ms (757 modules)
+ ✓ Compiled /onboarding/phone in 74ms (761 modules)
+ ✓ Compiled /onboarding/otp in 60ms (760 modules)
+ ✓ Compiled /driver/trips/[tripId]/manifest in 309ms (1465 modules)
+ GET / 200 in 1151ms
+ ○ Compiling /onboarding/name ...
+ ✓ Compiled /onboarding/name in 1360ms (1379 modules)
+ ✓ Compiled /trips in 233ms (681 modules)
+ ✓ Compiled /trips/[tripId]/book in 298ms (690 modules)
+ ✓ Compiled /bookings/[bookingId]/confirm in 124ms (695 modules)
+ GET /bookings 200 in 933ms
+ GET /bookings 200 in 66ms
+ GET / 200 in 432ms
+ ○ Compiling /driver ...
+ ✓ Compiled /driver in 1527ms (673 modules)
+ GET / 200 in 80ms
+ ✓ Compiled /profile in 148ms (677 modules)
+ GET / 200 in 53ms
+ GET / 200 in 31ms
+ ✓ Compiled /onboarding in 345ms (673 modules)
+ ✓ Compiled /onboarding/phone in 165ms (677 modules)
+ ✓ Compiled /onboarding/otp in 169ms (677 modules)
+ ✓ Compiled /onboarding/name in 103ms (681 modules)
+ ✓ Compiled /trips in 99ms (676 modules)
+ ✓ Compiled /trips/[tripId]/book in 355ms (685 modules)
+ ✓ Compiled /bookings/[bookingId]/confirm in 154ms (686 modules)
+ ✓ Compiled /driver in 145ms (691 modules)
+ ✓ Compiled /driver/trips/[tripId]/manifest in 126ms (691 modules)
+ GET / 200 in 98ms
+ ○ Compiling /track/[bookingId] ...
+ ✓ Compiled /track/[bookingId] in 749ms (738 modules)
+⠙[1G[0K

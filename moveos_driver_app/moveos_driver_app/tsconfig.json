@@ -1,0 +1,43 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "types": ["jest"],
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "App.tsx",
+    "index.js",
+    "src/app/**/*.ts",
+    "src/app/**/*.tsx",
+    "src/components/**/*.ts",
+    "src/components/**/*.tsx",
+    "src/config/**/*.ts",
+    "src/features/auth/**/*.ts",
+    "src/features/auth/**/*.tsx",
+    "src/features/driver/**/*.ts",
+    "src/features/driver/**/*.tsx",
+    "src/features/onboarding/**/*.ts",
+    "src/features/onboarding/components/**/*.tsx",
+    "src/features/onboarding/constants/**/*.ts",
+    "src/features/onboarding/screens/OnboardingScreen.tsx",
+    "src/features/onboarding/screens/SplashScreen.tsx",
+    "src/features/shared/**/*.ts",
+    "src/features/shared/**/*.tsx",
+    "src/features/trips/lib/**/*.ts",
+    "src/hooks/**/*.ts",
+    "src/lib/**/*.ts",
+    "src/navigation/**/*.ts",
+    "src/navigation/**/*.tsx",
+    "src/services/**/*.ts",
+    "src/sockets/**/*.ts",
+    "src/store/**/*.ts",
+    "src/theme/**/*.ts",
+    "src/types/**/*.ts",
+    "src/types/**/*.d.ts",
+    "src/utils/**/*.ts"
+  ],
+  "exclude": ["**/node_modules", "**/Pods"]
+}

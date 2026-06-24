@@ -1,0 +1,4 @@
+/**
+ * Mapbox configuration placeholder.
+ */
+export {};

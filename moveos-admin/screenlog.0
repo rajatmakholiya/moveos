@@ -1,0 +1,798 @@
+
+> nextjs@0.1.0 dev
+> next dev -p 3020
+
+  [1m[35m[1m▲[1m Next.js 13.5.1[39m[22m
+  - Local:        http://localhost:3020
+  - Environments: .env.local
+
+ [32m[1m✓[22m[39m Ready in 1334ms
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ [32m[1m✓[22m[39m Compiled /page in 1280ms (480 modules)
+ [32m[1m✓[22m[39m Compiled in 117ms (251 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/page in 1916ms (3301 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/tracking/page in 744ms (3574 modules)
+ [32m[1m✓[22m[39m Compiled in 540ms (3566 modules)
+ [31m[1mX[22m[39m Error: Cannot find module './958.js'
+Require stack:
+- /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js
+- /Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/utils.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/router-utils/setup-dev.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/router-server.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1475:15)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require-hook.js:54:36
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1048:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1072:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1093:12)
+    at Module._load (node:internal/modules/cjs/loader:1261:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1575:12)
+    at mod.require (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require-hook.js:64:28)
+    at require (node:internal/modules/helpers:191:16)
+    at __webpack_require__.f.require (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:203:28)
+    at /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:111:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:110:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:162:22)
+    at /Users/shubhamjoshi/new/moveos-admin/.next/server/app/page.js:6:6444
+    at Object.<anonymous> (/Users/shubhamjoshi/new/moveos-admin/.next/server/app/page.js:6:6510)
+    at Module._compile (node:internal/modules/cjs/loader:1829:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1969:10)
+    at Module.load (node:internal/modules/cjs/loader:1552:32)
+    at Module._load (node:internal/modules/cjs/loader:1354:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1575:12)
+    at mod.require (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require-hook.js:64:28)
+    at require (node:internal/modules/helpers:191:16)
+    at requirePage (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js:109:84)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js:59:84
+    at async loadComponentsImpl (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js:59:26)
+    at async DevServer.findPageComponentsImpl (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/next-server.js:438:36) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js',
+    '/Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/utils.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/router-utils/setup-dev.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/'
+}
+ [32m[1m✓[22m[39m Compiled /_error in 601ms (3708 modules)
+ [32m[1m✓[22m[39m Compiled /not-found in 268ms (3713 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/Users/shubhamjoshi/new/moveos-admin/.next/server/vendor-chunks/aria-hidden.js'[39m[22m
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving './vendor-chunks/aria-hidden' in /Users/shubhamjoshi/new/moveos-admin/.next/server for build dependencies doesn't lead to expected result '/Users/shubhamjoshi/new/moveos-admin/.next/server/vendor-chunks/aria-hidden.js', but to 'Error: Can't resolve './vendor-chunks/aria-hidden' in '/Users/shubhamjoshi/new/moveos-admin/.next/server'' instead. Resolving dependencies are ignored for this path.[39m[22m
+<w> [1m[33m at resolve commonjs file ./vendor-chunks/aria-hidden (expected /Users/shubhamjoshi/new/moveos-admin/.next/server/vendor-chunks/aria-hidden.js)[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/export/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/export/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at resolve commonjs /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving './vendor-chunks/detect-node-es' in /Users/shubhamjoshi/new/moveos-admin/.next/server for build dependencies doesn't lead to expected result '/Users/shubhamjoshi/new/moveos-admin/.next/server/vendor-chunks/detect-node-es.js', but to 'Error: Can't resolve './vendor-chunks/detect-node-es' in '/Users/shubhamjoshi/new/moveos-admin/.next/server'' instead. Resolving dependencies are ignored for this path.[39m[22m
+<w> [1m[33m at resolve commonjs file ./vendor-chunks/detect-node-es (expected /Users/shubhamjoshi/new/moveos-admin/.next/server/vendor-chunks/detect-node-es.js)[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/export/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/export/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at resolve commonjs /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving './vendor-chunks/get-nonce' in /Users/shubhamjoshi/new/moveos-admin/.next/server for build dependencies doesn't lead to expected result '/Users/shubhamjoshi/new/moveos-admin/.next/server/vendor-chunks/get-nonce.js', but to 'Error: Can't resolve './vendor-chunks/get-nonce' in '/Users/shubhamjoshi/new/moveos-admin/.next/server'' instead. Resolving dependencies are ignored for this path.[39m[22m
+<w> [1m[33m at resolve commonjs file ./vendor-chunks/get-nonce (expected /Users/shubhamjoshi/new/moveos-admin/.next/server/vendor-chunks/get-nonce.js)[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/export/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/export/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at resolve commonjs /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving './vendor-chunks/has-flag' in /Users/shubhamjoshi/new/moveos-admin/.next/server for build dependencies doesn't lead to expected result '/Users/shubhamjoshi/new/moveos-admin/.next/server/vendor-chunks/has-flag.js', but to 'Error: Can't resolve './vendor-chunks/has-flag' in '/Users/shubhamjoshi/new/moveos-admin/.next/server'' instead. Resolving dependencies are ignored for this path.[39m[22m
+<w> [1m[33m at resolve commonjs file ./vendor-chunks/has-flag (expected /Users/shubhamjoshi/new/moveos-admin/.next/server/vendor-chunks/has-flag.js)[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/export/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/export/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at resolve commonjs /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+ [32m[1m✓[22m[39m Compiled in 932ms (3717 modules)
+ [32m[1m✓[22m[39m Compiled /not-found in 146ms (3708 modules)
+ [32m[1m✓[22m[39m Compiled in 212ms (3708 modules)
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/5.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/5.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/5.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/5.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/5.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/5.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/5.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/5.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/6.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/6.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/6.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/6.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/6.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/6.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/6.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/6.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/8.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/8.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/8.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/8.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/8.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/8.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/8.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/8.pack.gz'
+}
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'[39m[22m
+(node:16417) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1097)
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16417) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1098)
+(node:16417) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1099)
+(node:16417) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1100)
+(node:16417) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1101)
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/2.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/2.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/2.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/2.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/2.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/3.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/3.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/3.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/3.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/3.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/3.pack.gz'
+}
+ [31m[1mX[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/3.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/3.pack.gz'
+}
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'[39m[22m
+(node:16417) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1102)
+(node:16417) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1103)
+(node:16417) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1104)
+TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ [31m[1mX[22m[39m uncaughtException: TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ [31m[1mX[22m[39m uncaughtException: TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ [31m[1mX[22m[39m uncaughtException: TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ [31m[1mX[22m[39m uncaughtException: TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+[?25h
+⠙[1G[0K
+> nextjs@0.1.0 dev
+> next dev -p 3020
+
+  [1m[35m[1m▲[1m Next.js 13.5.1[39m[22m
+  - Local:        http://localhost:3020
+  - Environments: .env.local
+
+ [32m[1m✓[22m[39m Ready in 1261ms
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ [32m[1m✓[22m[39m Compiled /page in 1448ms (490 modules)
+ [32m[1m✓[22m[39m Compiled in 104ms (251 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/tracking/page in 1234ms (2539 modules)
+ [32m[1m✓[22m[39m Compiled /not-found in 156ms (2542 modules)
+ [32m[1m✓[22m[39m Compiled in 498ms (2542 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/page in 722ms (3545 modules)
+
+> nextjs@0.1.0 dev
+> next dev -p 3020
+
+  [1m[35m[1m▲[1m Next.js 13.5.1[39m[22m
+  - Local:        http://localhost:3020
+  - Environments: .env.local
+
+ [32m[1m✓[22m[39m Ready in 1242ms
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ [32m[1m✓[22m[39m Compiled /page in 807ms (479 modules)
+ [32m[1m✓[22m[39m Compiled in 99ms (251 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/tracking/page in 1015ms (2537 modules)
+ [32m[1m✓[22m[39m Compiled /not-found in 176ms (2542 modules)
+ [32m[1m✓[22m[39m Compiled in 1158ms (2547 modules)
+
+> nextjs@0.1.0 dev
+> next dev -p 3020
+
+  [1m[35m[1m▲[1m Next.js 13.5.1[39m[22m
+  - Local:        http://localhost:3020
+  - Environments: .env.local
+
+ [32m[1m✓[22m[39m Ready in 1826ms
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ [32m[1m✓[22m[39m Compiled /page in 1134ms (479 modules)
+ [32m[1m✓[22m[39m Compiled in 594ms (251 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/tracking/page in 908ms (2537 modules)
+ [32m[1m✓[22m[39m Compiled /not-found in 173ms (2542 modules)
+ [32m[1m✓[22m[39m Compiled in 535ms (2542 modules)
+
+> nextjs@0.1.0 dev
+> next dev -p 3020
+
+  [1m[35m[1m▲[1m Next.js 13.5.1[39m[22m
+  - Local:        http://localhost:3020
+  - Environments: .env.local
+
+ [32m[1m✓[22m[39m Ready in 1245ms
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ [32m[1m✓[22m[39m Compiled /page in 1019ms (479 modules)
+ [32m[1m✓[22m[39m Compiled in 227ms (251 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/tracking/page in 832ms (2537 modules)
+ [32m[1m✓[22m[39m Compiled /not-found in 182ms (2542 modules)
+ [32m[1m✓[22m[39m Compiled in 674ms (2542 modules)
+
+> nextjs@0.1.0 dev
+> next dev -p 3020
+
+  [1m[35m[1m▲[1m Next.js 13.5.1[39m[22m
+  - Local:        http://localhost:3020
+  - Environments: .env.local
+
+ [32m[1m✓[22m[39m Ready in 1264ms
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ [32m[1m✓[22m[39m Compiled /page in 1076ms (479 modules)
+ [32m[1m✓[22m[39m Compiled in 207ms (251 modules)
+ [37m[1m [22m[39m Reload env: .env.local
+ [32m[1m✓[22m[39m Compiled in 2s (490 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/tracking/page in 2.6s (2537 modules)
+ [32m[1m✓[22m[39m Compiled /not-found in 701ms (2542 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/org/page in 473ms (2576 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/profile/page in 255ms (2583 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/drivers/page in 158ms (2599 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/assignments/page in 1047ms (3479 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/rides/page in 352ms (3565 modules)
+ [32m[1m✓[22m[39m Compiled /not-found in 617ms (3045 modules)
+ [32m[1m✓[22m[39m Compiled /dashboard/rides/page in 169ms (1730 modules)
+ [32m[1m✓[22m[39m Compiled in 689ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 410ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 407ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 430ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 428ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 316ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 418ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 398ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 151ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 301ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 184ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 288ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 334ms (1810 modules)
+ [32m[1m✓[22m[39m Compiled in 876ms (3057 modules)
+ [32m[1m✓[22m[39m Compiled in 553ms (3042 modules)
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ [32m[1m✓[22m[39m Compiled in 773ms (3056 modules)
+ [31m[1mX[22m[39m app/dashboard/layout.tsx (45:69) @ CalendarDays
+ [31m[1mX[22m[39m ReferenceError: CalendarDays is not defined
+    at eval (./app/dashboard/layout.tsx:102:15)
+    at (ssr)/./app/dashboard/layout.tsx (/Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js:324:1)
+    at __webpack_require__ (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:33:43)
+[0m [90m 43 | [39m  { name[33m:[39m [32m'Assignments'[39m[33m,[39m href[33m:[39m [32m'/dashboard/assignments'[39m[33m,[39m icon[33m:[39m [33mClipboardList[39m }[33m,[39m[0m
+[0m [90m 44 | [39m  { name[33m:[39m [32m'Rides'[39m[33m,[39m href[33m:[39m [32m'/dashboard/rides'[39m[33m,[39m icon[33m:[39m [33mRoute[39m }[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 45 | [39m  { name[33m:[39m [32m'Bookings & Schedules'[39m[33m,[39m href[33m:[39m [32m'/dashboard/bookings'[39m[33m,[39m icon[33m:[39m [33mCalendarDays[39m }[33m,[39m[0m
+[0m [90m    | [39m                                                                    [31m[1m^[22m[39m[0m
+[0m [90m 46 | [39m  { name[33m:[39m [32m'Passengers'[39m[33m,[39m href[33m:[39m [32m'/dashboard/passengers'[39m[33m,[39m icon[33m:[39m [33mUsers[39m }[33m,[39m[0m
+[0m [90m 47 | [39m  { name[33m:[39m [32m'Challans'[39m[33m,[39m href[33m:[39m [32m'/dashboard/challans'[39m[33m,[39m icon[33m:[39m [33mReceipt[39m }[33m,[39m[0m
+[0m [90m 48 | [39m  { name[33m:[39m [32m'Documents'[39m[33m,[39m href[33m:[39m [32m'/dashboard/documents'[39m[33m,[39m icon[33m:[39m [33mFileText[39m }[33m,[39m[0m
+ [32m[1m✓[22m[39m Compiled /not-found in 400ms (3047 modules)
+ [32m[1m✓[22m[39m Compiled in 384ms (3061 modules)
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+ [31m[1mX[22m[39m app/dashboard/layout.tsx (45:69) @ CalendarDays
+ [31m[1mX[22m[39m ReferenceError: CalendarDays is not defined
+    at eval (./app/dashboard/layout.tsx:102:15)
+    at (ssr)/./app/dashboard/layout.tsx (/Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js:324:1)
+    at __webpack_require__ (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:33:43)
+[0m [90m 43 | [39m  { name[33m:[39m [32m'Assignments'[39m[33m,[39m href[33m:[39m [32m'/dashboard/assignments'[39m[33m,[39m icon[33m:[39m [33mClipboardList[39m }[33m,[39m[0m
+[0m [90m 44 | [39m  { name[33m:[39m [32m'Rides'[39m[33m,[39m href[33m:[39m [32m'/dashboard/rides'[39m[33m,[39m icon[33m:[39m [33mRoute[39m }[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 45 | [39m  { name[33m:[39m [32m'Bookings & Schedules'[39m[33m,[39m href[33m:[39m [32m'/dashboard/bookings'[39m[33m,[39m icon[33m:[39m [33mCalendarDays[39m }[33m,[39m[0m
+[0m [90m    | [39m                                                                    [31m[1m^[22m[39m[0m
+[0m [90m 46 | [39m  { name[33m:[39m [32m'Passengers'[39m[33m,[39m href[33m:[39m [32m'/dashboard/passengers'[39m[33m,[39m icon[33m:[39m [33mUsers[39m }[33m,[39m[0m
+[0m [90m 47 | [39m  { name[33m:[39m [32m'Challans'[39m[33m,[39m href[33m:[39m [32m'/dashboard/challans'[39m[33m,[39m icon[33m:[39m [33mReceipt[39m }[33m,[39m[0m
+[0m [90m 48 | [39m  { name[33m:[39m [32m'Documents'[39m[33m,[39m href[33m:[39m [32m'/dashboard/documents'[39m[33m,[39m icon[33m:[39m [33mFileText[39m }[33m,[39m[0m
+ [31m[1mX[22m[39m app/dashboard/layout.tsx (45:69) @ CalendarDays
+ [31m[1mX[22m[39m ReferenceError: CalendarDays is not defined
+    at eval (./app/dashboard/layout.tsx:102:15)
+    at (ssr)/./app/dashboard/layout.tsx (/Users/shubhamjoshi/new/moveos-admin/.next/server/app/dashboard/tracking/page.js:324:1)
+    at __webpack_require__ (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:33:43)
+[0m [90m 43 | [39m  { name[33m:[39m [32m'Assignments'[39m[33m,[39m href[33m:[39m [32m'/dashboard/assignments'[39m[33m,[39m icon[33m:[39m [33mClipboardList[39m }[33m,[39m[0m
+[0m [90m 44 | [39m  { name[33m:[39m [32m'Rides'[39m[33m,[39m href[33m:[39m [32m'/dashboard/rides'[39m[33m,[39m icon[33m:[39m [33mRoute[39m }[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 45 | [39m  { name[33m:[39m [32m'Bookings & Schedules'[39m[33m,[39m href[33m:[39m [32m'/dashboard/bookings'[39m[33m,[39m icon[33m:[39m [33mCalendarDays[39m }[33m,[39m[0m
+[0m [90m    | [39m                                                                    [31m[1m^[22m[39m[0m
+[0m [90m 46 | [39m  { name[33m:[39m [32m'Passengers'[39m[33m,[39m href[33m:[39m [32m'/dashboard/passengers'[39m[33m,[39m icon[33m:[39m [33mUsers[39m }[33m,[39m[0m
+[0m [90m 47 | [39m  { name[33m:[39m [32m'Challans'[39m[33m,[39m href[33m:[39m [32m'/dashboard/challans'[39m[33m,[39m icon[33m:[39m [33mReceipt[39m }[33m,[39m[0m
+[0m [90m 48 | [39m  { name[33m:[39m [32m'Documents'[39m[33m,[39m href[33m:[39m [32m'/dashboard/documents'[39m[33m,[39m icon[33m:[39m [33mFileText[39m }[33m,[39m[0m
+ [32m[1m✓[22m[39m Compiled /_error in 509ms (3203 modules)
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+ [32m[1m✓[22m[39m Compiled in 644ms (3221 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/Users/shubhamjoshi/new/moveos-admin/.next/server/app/not-found_client-reference-manifest.js'[39m[22m
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/not-found_client-reference-manifest' in /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/Users/shubhamjoshi/new/moveos-admin/.next/server/app/not-found_client-reference-manifest.js', but to 'Error: Can't resolve '../../../../.next/server/app/not-found_client-reference-manifest' in '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.[39m[22m
+<w> [1m[33m at resolve commonjs file ../../../../.next/server/app/not-found_client-reference-manifest (expected /Users/shubhamjoshi/new/moveos-admin/.next/server/app/not-found_client-reference-manifest.js)[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/utils.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/utils.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at resolve commonjs /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+ [32m[1m✓[22m[39m Compiled /dashboard/rides/page in 692ms (1766 modules)
+ [31m[1mX[22m[39m TypeError: Cannot read properties of undefined (reading 'call')
+    at __webpack_require__ (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:33:43)
+    at JSON.parse (<anonymous>)
+TypeError: Cannot read properties of undefined (reading 'call')
+    at __webpack_require__ (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:33:43)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:294302
+    at oe (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:294490)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:296297
+    at Object.<anonymous> (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:296692)
+    at JSON.parse (<anonymous>)
+    at de (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:299872)
+    at re (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:294049)
+    at J (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:293102)
+    at as (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:261313)
+    at os (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:260774)
+    at ts (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:249948)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:255098
+    at rs (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:255122)
+    at as (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:261055)
+    at os (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:260774)
+    at ps (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:266112)
+    at fs (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:267033)
+    at Timeout._onTimeout (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:246872)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+ [31m[1mX[22m[39m TypeError: Cannot read properties of undefined (reading 'call')
+    at __webpack_require__ (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:33:43)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:294302
+    at oe (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:294490)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:296297
+    at Object.<anonymous> (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:296692)
+    at JSON.parse (<anonymous>)
+    at de (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:299872)
+    at re (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:294049)
+    at J (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:293102)
+    at as (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:261313)
+    at os (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:260774)
+    at ts (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:249948)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:255098
+    at rs (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:255122)
+    at as (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:261055)
+    at os (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:260774)
+    at ps (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:266112)
+    at fs (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:267033)
+    at Timeout._onTimeout (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:1:246872)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7) {
+  page: '/dashboard/rides'
+}
+ [32m[1m✓[22m[39m Compiled /_error in 163ms (3685 modules)
+Error: Cannot find module './8378.js'
+Require stack:
+- /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js
+- /Users/shubhamjoshi/new/moveos-admin/.next/server/pages/_document.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/utils.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/router-utils/setup-dev.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/router-server.js
+- /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1475:15)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require-hook.js:54:36
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1048:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1072:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1093:12)
+    at Module._load (node:internal/modules/cjs/loader:1261:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1575:12)
+    at mod.require (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require-hook.js:64:28)
+    at require (node:internal/modules/helpers:191:16)
+    at __webpack_require__.f.require (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:203:28)
+    at /Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:111:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:110:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js:162:22)
+    at /Users/shubhamjoshi/new/moveos-admin/.next/server/pages/_document.js:1:295
+    at Object.<anonymous> (/Users/shubhamjoshi/new/moveos-admin/.next/server/pages/_document.js:1:342)
+    at Module._compile (node:internal/modules/cjs/loader:1829:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1969:10)
+    at Module.load (node:internal/modules/cjs/loader:1552:32)
+    at Module._load (node:internal/modules/cjs/loader:1354:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1575:12)
+    at mod.require (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require-hook.js:64:28)
+    at require (node:internal/modules/helpers:191:16)
+    at requirePage (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js:109:84)
+    at /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js:55:65
+    at async Promise.all (index 0)
+    at async loadComponentsImpl (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js:54:33)
+    at async DevServer.findPageComponentsImpl (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/next-server.js:438:36) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/shubhamjoshi/new/moveos-admin/.next/server/webpack-runtime.js',
+    '/Users/shubhamjoshi/new/moveos-admin/.next/server/pages/_document.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/require.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/utils.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/router-utils/setup-dev.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js'
+  ]
+}
+ [32m[1m✓[22m[39m Compiled /not-found in 200ms (3690 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/Users/shubhamjoshi/new/moveos-admin/.next/server'[39m[22m
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/not-found_client-reference-manifest' in /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/Users/shubhamjoshi/new/moveos-admin/.next/server/app/not-found_client-reference-manifest.js', but to 'Error: Can't resolve '../../../../.next/server/app/not-found_client-reference-manifest' in '/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.[39m[22m
+<w> [1m[33m at resolve commonjs file ../../../../.next/server/app/not-found_client-reference-manifest (expected /Users/shubhamjoshi/new/moveos-admin/.next/server/app/not-found_client-reference-manifest.js)[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/load-components.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/utils.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/utils.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/worker.js[39m[22m
+<w> [1m[33m at file dependencies /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at file /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+<w> [1m[33m at resolve commonjs /Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js[39m[22m
+TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ [31m[1mX[22m[39m uncaughtException: TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ [31m[1mX[22m[39m uncaughtException: TypeError [ERR_INVALID_ARG_TYPE]: The "code" argument must be of type number. Received type string ('SIGTERM')
+    at process.set [as exitCode] (node:internal/bootstrap/node:119:9)
+    at process.exit (node:internal/process/per_thread:231:24)
+    at process.cleanup (/Users/shubhamjoshi/new/moveos-admin/node_modules/next/dist/server/lib/start-server.js:208:29)
+    at process.emit (node:events:520:22) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ [32m[1m✓[22m[39m Compiled in 5.9s (3214 modules)
+ [32m[1m✓[22m[39m Compiled in 611ms (1933 modules)
+ [32m[1m✓[22m[39m Compiled in 514ms (1933 modules)
+ [32m[1m✓[22m[39m Compiled in 360ms (1933 modules)
+ [32m[1m✓[22m[39m Compiled in 636ms (3200 modules)
+ [32m[1m✓[22m[39m Compiled in 173ms (3200 modules)
+ [32m[1m✓[22m[39m Compiled in 788ms (3200 modules)
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ [32m[1m✓[22m[39m Compiled in 447ms (1933 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'[39m[22m
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 1928ms (3200 modules)
+ [32m[1m✓[22m[39m Compiled in 1710ms (3200 modules)
+ [32m[1m✓[22m[39m Compiled in 570ms (1933 modules)
+ [32m[1m✓[22m[39m Compiled in 1965ms (3214 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Restoring pack from /Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development.pack.gz failed: TypeError: Cannot read properties of undefined (reading 'hasStartTime')[39m[22m
+ [32m[1m✓[22m[39m Compiled in 1088ms (3214 modules)
+ [32m[1m✓[22m[39m Compiled in 761ms (3214 modules)
+ [32m[1m✓[22m[39m Compiled in 940ms (3218 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 6.1s (1934 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 32s (1934 modules)
+ [32m[1m✓[22m[39m Compiled in 1651ms (1934 modules)
+ [32m[1m✓[22m[39m Compiled in 919ms (1934 modules)
+ [32m[1m✓[22m[39m Compiled in 954ms (1934 modules)
+ [32m[1m✓[22m[39m Compiled in 542ms (1934 modules)
+ [32m[1m✓[22m[39m Compiled in 552ms (1934 modules)
+ [32m[1m✓[22m[39m Compiled in 234ms (1934 modules)
+ [32m[1m✓[22m[39m Compiled in 287ms (1934 modules)
+ [32m[1m✓[22m[39m Compiled in 379ms (1934 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 1442ms (1934 modules)
+ [32m[1m✓[22m[39m Compiled in 731ms (1934 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 4.7s (3216 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Restoring pack from /Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development.pack.gz failed: TypeError: Cannot read properties of undefined (reading 'hasStartTime')[39m[22m
+ [32m[1m✓[22m[39m Compiled in 1532ms (3216 modules)
+ [32m[1m✓[22m[39m Compiled in 991ms (3216 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/7.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 1362ms (3216 modules)
+ [32m[1m✓[22m[39m Compiled in 971ms (3216 modules)
+ [32m[1m✓[22m[39m Compiled in 714ms (3216 modules)
+ [32m[1m✓[22m[39m Compiled in 891ms (3221 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 5.7s (1935 modules)
+ [32m[1m✓[22m[39m Compiled in 2.3s (1935 modules)
+ [32m[1m✓[22m[39m Compiled in 1874ms (1935 modules)
+ [32m[1m✓[22m[39m Compiled in 1208ms (1935 modules)
+ [32m[1m✓[22m[39m Compiled in 1622ms (1935 modules)
+ [32m[1m✓[22m[39m Compiled in 4.9s (3223 modules)
+ [32m[1m✓[22m[39m Compiled in 1496ms (3223 modules)
+ [32m[1m✓[22m[39m Compiled in 6.8s (3209 modules)
+ [31m[1mX[22m[39m ./components/StopsMap.tsx:6:0
+[31m[1mModule not found[22m[39m: Can't resolve '[32mmaplibre-gl/dist/maplibre-gl.css[39m'
+[0m [90m 4 | [39m[36mimport[39m type { [33mMap[39m [36mas[39m [33mMlMap[39m[33m,[39m [33mMarker[39m [36mas[39m [33mMlMarker[39m[33m,[39m [33mPopup[39m [36mas[39m [33mMlPopup[39m } [36mfrom[39m [32m'maplibre-gl'[39m[33m;[39m[0m
+[0m [90m 5 | [39m[36mimport[39m { locationApi } [36mfrom[39m [32m'@/lib/api'[39m[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 6 | [39m[36mimport[39m [32m'maplibre-gl/dist/maplibre-gl.css'[39m[33m;[39m[0m
+[0m [90m 7 | [39m[0m
+[0m [90m 8 | [39m[36mexport[39m type [33mStopPoint[39m [33m=[39m {[0m
+[0m [90m 9 | [39m  id[33m:[39m string[33m;[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/dashboard/tracking/page.tsx
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Restoring pack from /Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development.pack.gz failed: TypeError: Cannot read properties of undefined (reading 'hasStartTime')[39m[22m
+ [32m[1m✓[22m[39m Compiled in 13.9s (3226 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/server-development/0.pack.gz'[39m[22m
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/1.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/1.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 2.4s (1939 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/2.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 3.7s (1939 modules)
+ [32m[1m✓[22m[39m Compiled in 1317ms (1939 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 1199ms (1941 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/0.pack.gz'[39m[22m
+ [32m[1m✓[22m[39m Compiled in 6.7s (3227 modules)
+ [32m[1m✓[22m[39m Compiled in 2s (3227 modules)
+ [32m[1m✓[22m[39m Compiled in 3.1s (3227 modules)
+ [32m[1m✓[22m[39m Compiled in 2.4s (3227 modules)
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/1.pack.gz_' -> '/Users/shubhamjoshi/new/moveos-admin/.next/cache/webpack/client-development/1.pack.gz'[39m[22m

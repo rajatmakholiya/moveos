@@ -1,0 +1,3223 @@
+{
+  "info": {
+    "name": "MoveOS Full Flow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "End-to-end driver app flow ordered by typical call sequence; each request goes via API Gateway with downstream service noted. Run the requests top-to-bottom. The onboarding and auth OTP requests save dynamic Postman variables automatically. Ride lifecycle requests require ride_id to point at an existing Ride row because this backend has no public create-ride endpoint. Location/Ola Maps requests require LOCATION_SERVICE_URL and OLA_MAPS_API_KEY to be configured in the running services."
+  },
+  "item": [
+    {
+      "name": "Onboarding (gateway → onboarding-service)",
+      "item": [
+        {
+          "name": "Create Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Idempotency-Key",
+                "value": "{{uuid}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceFingerprint\": \"{{device_fingerprint}}\",\n  \"referralCode\": \"MOVEOS-DEMO\",\n  \"appVersion\": \"1.0.0\",\n  \"locale\": \"en-IN\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"deviceModel\": \"Postman Desktop\",\n  \"osVersion\": \"macOS\",\n  \"role\": \"DRIVER\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/onboarding/session",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "session"
+              ]
+            }
+          },
+          "description": "Gateway → onboarding-service: start onboarding, returns onboarding token.",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = String(Math.floor(Math.random() * 100000)).padStart(5, '0');",
+                  "const runId = `${Date.now()}${suffix}`;",
+                  "pm.collectionVariables.set('run_id', runId);",
+                  "pm.collectionVariables.set('driver_phone', `+9198765${suffix}`);",
+                  "pm.collectionVariables.set('device_fingerprint', `device-fp-${runId}`);",
+                  "pm.collectionVariables.unset('onboarding_token');",
+                  "pm.collectionVariables.unset('onboarding_otp');",
+                  "pm.collectionVariables.unset('auth_token');",
+                  "pm.collectionVariables.unset('refresh_token');",
+                  "pm.collectionVariables.unset('driver_id');",
+                  "pm.collectionVariables.set('ride_id', `ride_${runId}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created onboarding session', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('session_id', json.data.sessionId);",
+                  "pm.collectionVariables.set('onboarding_token', json.data.onboardingToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profile (request OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{onboarding_token}}"
+              },
+              {
+                "key": "X-Idempotency-Key",
+                "value": "{{uuid}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Driver One\",\n  \"phone\": \"{{driver_phone}}\",\n  \"email\": \"driver.one+{{run_id}}@example.com\",\n  \"resend\": true,\n  \"locale\": \"en-IN\",\n  \"timezone\": \"Asia/Kolkata\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/onboarding/profile",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "profile"
+              ]
+            }
+          },
+          "description": "Gateway → onboarding-service: trigger OTP send.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('otp requested', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('onboarding_otp', json.data.devOtpCode);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profile (verify OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{onboarding_token}}"
+              },
+              {
+                "key": "X-Idempotency-Key",
+                "value": "{{uuid}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Driver One\",\n  \"phone\": \"{{driver_phone}}\",\n  \"email\": \"driver.one+{{run_id}}@example.com\",\n  \"otp\": \"{{onboarding_otp}}\",\n  \"locale\": \"en-IN\",\n  \"timezone\": \"Asia/Kolkata\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/onboarding/profile",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "profile"
+              ]
+            }
+          },
+          "description": "Gateway → onboarding-service: verify OTP and bind phone.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('otp verified', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('onboarding_user_id', json.data.userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{onboarding_token}}"
+              },
+              {
+                "key": "X-Idempotency-Key",
+                "value": "{{uuid}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationPermission\": \"granted\",\n  \"notificationsOptIn\": true,\n  \"marketingOptIn\": true,\n  \"locale\": \"en-IN\",\n  \"timezone\": \"Asia/Kolkata\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/onboarding/consents",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "consents"
+              ]
+            }
+          },
+          "description": "Gateway → onboarding-service: record consents.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('consents recorded', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Context",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{onboarding_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/onboarding/context?lat={{lat}}&lng={{lng}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "context"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "{{lat}}"
+                },
+                {
+                  "key": "lng",
+                  "value": "{{lng}}"
+                }
+              ]
+            }
+          },
+          "description": "Gateway → onboarding-service: fetch onboarding context/hints.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('context loaded', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{onboarding_token}}"
+              },
+              {
+                "key": "X-Idempotency-Key",
+                "value": "{{uuid}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/onboarding/complete",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "onboarding",
+                "complete"
+              ]
+            }
+          },
+          "description": "Gateway → onboarding-service: completes onboarding, returns auth/refresh tokens and driverId.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('onboarding completed', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('auth_token', json.data.authToken);",
+                  "pm.collectionVariables.set('refresh_token', json.data.refreshToken);",
+                  "pm.collectionVariables.set('driver_id', json.data.driverId);",
+                  "pm.collectionVariables.set('user_id', json.data.userId);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth OTP (gateway → auth stub)",
+      "item": [
+        {
+          "name": "Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{driver_phone}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/auth/otp/request",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "otp",
+                "request"
+              ]
+            }
+          },
+          "description": "Gateway → internal OTP stub: issues dev OTP and driverId.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('auth otp requested', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('auth_otp', json.devOtpCode);",
+                  "pm.collectionVariables.set('driver_id', json.driverId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{driver_phone}}\",\n  \"otp\": \"{{auth_otp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/auth/otp/verify",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "otp",
+                "verify"
+              ]
+            }
+          },
+          "description": "Gateway → internal OTP stub: returns JWT (set {{auth_token}}).",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('auth otp verified', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('auth_token', json.accessToken);",
+                  "pm.collectionVariables.set('refresh_token', json.refreshToken);",
+                  "pm.collectionVariables.set('driver_id', json.driverId);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Driver (gateway → driver-service)",
+      "item": [
+        {
+          "name": "Go Online",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/drivers/me/go-online",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "drivers",
+                "me",
+                "go-online"
+              ]
+            }
+          },
+          "description": "Gateway → driver-service: set driver ONLINE and write Redis state.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Go Online returned success', () => pm.expect(pm.response.code).to.be.below(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Go Offline",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/drivers/me/go-offline",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "drivers",
+                "me",
+                "go-offline"
+              ]
+            }
+          },
+          "description": "Gateway → driver-service: set driver OFFLINE and clear active ride.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Go Offline returned success', () => pm.expect(pm.response.code).to.be.below(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/drivers/me",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "drivers",
+                "me"
+              ]
+            }
+          },
+          "description": "Gateway → driver-service: fetch driver profile with vehicles.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Profile returned success', () => pm.expect(pm.response.code).to.be.below(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compliance Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/compliance/me/status",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "compliance",
+                "me",
+                "status"
+              ]
+            }
+          },
+          "description": "Gateway → driver-service: KYC/compliance status.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Compliance Status returned success', () => pm.expect(pm.response.code).to.be.below(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Earnings Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/earnings/me/summary",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "earnings",
+                "me",
+                "summary"
+              ]
+            }
+          },
+          "description": "Gateway → driver-service: total earnings.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Earnings Summary returned success', () => pm.expect(pm.response.code).to.be.below(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wallet Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/wallet/me/balance",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "wallet",
+                "me",
+                "balance"
+              ]
+            }
+          },
+          "description": "Gateway → driver-service: wallet balance.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Wallet Balance returned success', () => pm.expect(pm.response.code).to.be.below(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Document Placeholder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"license\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/drivers/me/documents",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "drivers",
+                "me",
+                "documents"
+              ]
+            }
+          },
+          "description": "Gateway → driver-service: create document metadata/upload URL.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Document Placeholder returned success', () => pm.expect(pm.response.code).to.be.below(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Telemetry (gateway → telemetry-service)",
+      "item": [
+        {
+          "name": "Send Location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lat\": {{lat}},\n  \"lng\": {{lng}}\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/telemetry/location",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "telemetry",
+                "location"
+              ]
+            }
+          },
+          "description": "Gateway → telemetry-service: upsert driver GEO + set ONLINE.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('location accepted', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Heartbeat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"{{driver_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/telemetry/heartbeat",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "telemetry",
+                "heartbeat"
+              ]
+            }
+          },
+          "description": "Gateway → telemetry-service: record heartbeat timestamp.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('heartbeat accepted', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rides (gateway → dispatch/ride-service)",
+      "item": [
+        {
+          "name": "Accept Offer (dispatch)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/rides/{{ride_id}}/accept",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "rides",
+                "{{ride_id}}",
+                "accept"
+              ]
+            }
+          },
+          "description": "Gateway → dispatch-service: atomic accept race.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Accept Offer (dispatch) returned a non-5xx response', () => pm.expect(pm.response.code).to.be.below(500));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Offer (dispatch)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/rides/{{ride_id}}/reject",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "rides",
+                "{{ride_id}}",
+                "reject"
+              ]
+            }
+          },
+          "description": "Gateway → dispatch-service: reject offer.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Reject Offer (dispatch) returned a non-5xx response', () => pm.expect(pm.response.code).to.be.below(500));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Arrived",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/rides/{{ride_id}}/arrived",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "rides",
+                "{{ride_id}}",
+                "arrived"
+              ]
+            }
+          },
+          "description": "Gateway → ride-service: mark ARRIVED, set active ride.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Arrived returned a non-5xx response', () => pm.expect(pm.response.code).to.be.below(500));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"riderOtp\": \"1234\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/rides/{{ride_id}}/start",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "rides",
+                "{{ride_id}}",
+                "start"
+              ]
+            }
+          },
+          "description": "Gateway → ride-service: mark STARTED, stores OTP.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Start returned a non-5xx response', () => pm.expect(pm.response.code).to.be.below(500));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/rides/{{ride_id}}/complete",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "rides",
+                "{{ride_id}}",
+                "complete"
+              ]
+            }
+          },
+          "description": "Gateway → ride-service: mark COMPLETED, clears active ride.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Complete returned a non-5xx response', () => pm.expect(pm.response.code).to.be.below(500));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"rider no-show\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/rides/{{ride_id}}/cancel",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "rides",
+                "{{ride_id}}",
+                "cancel"
+              ]
+            }
+          },
+          "description": "Gateway → ride-service: cancel ride with reason.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cancel returned a non-5xx response', () => pm.expect(pm.response.code).to.be.below(500));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Notifications (gateway → notification-service)",
+      "item": [
+        {
+          "name": "Register Device Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{device_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/notifications/device-token",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "device-token"
+              ]
+            }
+          },
+          "description": "Gateway → notification-service: store device token.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('device token registered', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Location (gateway → location-service)",
+      "item": [
+        {
+          "name": "Directions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": {\n    \"lat\": {{lat}},\n    \"lng\": {{lng}}\n  },\n  \"destination\": {\n    \"lat\": 12.9752,\n    \"lng\": 77.6245\n  },\n  \"mode\": \"driving\",\n  \"alternatives\": false,\n  \"steps\": true,\n  \"overview\": \"full\",\n  \"language\": \"en\",\n  \"trafficMetadata\": false,\n  \"routePreference\": \"fastest\",\n  \"basic\": true\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/directions",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "directions"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: Ola Maps directions."
+        },
+        {
+          "name": "Distance Matrix",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origins\": [\n    {\n      \"lat\": {{lat}},\n      \"lng\": {{lng}}\n    }\n  ],\n  \"destinations\": [\n    {\n      \"lat\": 12.9752,\n      \"lng\": 77.6245\n    }\n  ],\n  \"mode\": \"driving\",\n  \"routePreference\": \"fastest\",\n  \"basic\": true\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/distance-matrix",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "distance-matrix"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: distance matrix."
+        },
+        {
+          "name": "Route Optimizer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locations\": [\n    {\n      \"lat\": {{lat}},\n      \"lng\": {{lng}}\n    },\n    {\n      \"lat\": 12.9752,\n      \"lng\": 77.6245\n    },\n    {\n      \"lat\": 12.9352,\n      \"lng\": 77.6245\n    }\n  ],\n  \"source\": \"first\",\n  \"destination\": \"last\",\n  \"roundTrip\": false,\n  \"mode\": \"driving\",\n  \"steps\": true,\n  \"overview\": \"full\",\n  \"language\": \"en\",\n  \"trafficMetadata\": false,\n  \"routePreference\": \"fastest\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/route-optimizer",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "route-optimizer"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: TSP-style optimizer."
+        },
+        {
+          "name": "Fleet Planner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"strategy\": \"optimal\",\n  \"routePreference\": \"fastest\",\n  \"input\": {\n    \"vehicles\": [\n      {\n        \"id\": \"vehicle-1\",\n        \"start\": [\n          77.5946,\n          12.9716\n        ],\n        \"capacity\": [\n          4\n        ]\n      }\n    ],\n    \"jobs\": [\n      {\n        \"id\": 1,\n        \"location\": [\n          77.6245,\n          12.9752\n        ],\n        \"delivery\": [\n          1\n        ]\n      }\n    ]\n  },\n  \"inputFilename\": \"postman-demo.json\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/fleet-planner",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "fleet-planner"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: fleet optimization."
+        },
+        {
+          "name": "Snap To Road",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"points\": [\n    {\n      \"lat\": {{lat}},\n      \"lng\": {{lng}}\n    },\n    {\n      \"lat\": 12.9721,\n      \"lng\": 77.5961\n    }\n  ],\n  \"enhancePath\": false\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/snap-to-road",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "snap-to-road"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: snap path to road."
+        },
+        {
+          "name": "Nearest Roads",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"DRIVING\",\n  \"points\": [\n    {\n      \"lat\": {{lat}},\n      \"lng\": {{lng}}\n    }\n  ],\n  \"radius\": 100\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/nearest-roads",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "nearest-roads"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: nearest roads."
+        },
+        {
+          "name": "Speed Limits",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"points\": [\n    {\n      \"lat\": {{lat}},\n      \"lng\": {{lng}}\n    },\n    {\n      \"lat\": 12.9721,\n      \"lng\": 77.5961\n    }\n  ],\n  \"snapStrategy\": \"snaptoroad\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/speed-limits",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "speed-limits"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: speed limits along path."
+        },
+        {
+          "name": "Places Autocomplete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": \"Kempegowda airport\",\n  \"location\": {\n    \"lat\": {{lat}},\n    \"lng\": {{lng}}\n  },\n  \"radius\": 5000,\n  \"strictbounds\": false,\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/places/autocomplete",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "places",
+                "autocomplete"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: places autocomplete."
+        },
+        {
+          "name": "Place Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placeId\": \"{{place_id}}\",\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/places/details",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "places",
+                "details"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: place details."
+        },
+        {
+          "name": "Place Details Advanced",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placeId\": \"{{place_id}}\",\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/places/details-advanced",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "places",
+                "details-advanced"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: place details advanced."
+        },
+        {
+          "name": "Nearby Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": {\n    \"lat\": {{lat}},\n    \"lng\": {{lng}}\n  },\n  \"types\": \"fuel_station\",\n  \"language\": \"en\",\n  \"radius\": 1000,\n  \"withCentroid\": false,\n  \"rankBy\": \"popular\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/places/nearby",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "places",
+                "nearby"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: nearby places."
+        },
+        {
+          "name": "Nearby Search Advanced",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": {\n    \"lat\": {{lat}},\n    \"lng\": {{lng}}\n  },\n  \"types\": \"restaurant\",\n  \"language\": \"en\",\n  \"radius\": 1000,\n  \"withCentroid\": false,\n  \"rankBy\": \"popular\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/places/nearby-advanced",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "places",
+                "nearby-advanced"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: nearby advanced."
+        },
+        {
+          "name": "Text Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": \"airport bangalore\",\n  \"location\": {\n    \"lat\": {{lat}},\n    \"lng\": {{lng}}\n  },\n  \"radius\": 5000,\n  \"types\": \"airport\",\n  \"size\": 5,\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/places/text-search",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "places",
+                "text-search"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: text search."
+        },
+        {
+          "name": "Address Validation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"12 MG Road, Bengaluru, Karnataka, India\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/places/address-validation",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "places",
+                "address-validation"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: address validation."
+        },
+        {
+          "name": "Place Photo (base64)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"photoReference\": \"{{photo_reference}}\",\n  \"maxWidth\": 400,\n  \"maxHeight\": 300\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/places/photo",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "places",
+                "photo"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: place photo (base64)."
+        },
+        {
+          "name": "Geocode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"MG Road Bengaluru Karnataka India\",\n  \"language\": \"English\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/geocode",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "geocode"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: forward geocode."
+        },
+        {
+          "name": "Reverse Geocode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latlng\": {\n    \"lat\": {{lat}},\n    \"lng\": {{lng}}\n  },\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/reverse-geocode",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "reverse-geocode"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: reverse geocode."
+        },
+        {
+          "name": "Create Geofence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Demo Geofence {{run_id}}\",\n  \"type\": \"circle\",\n  \"status\": \"active\",\n  \"projectId\": \"{{project_id}}\",\n  \"coordinates\": [\n    [\n      77.5946,\n      12.9716\n    ]\n  ],\n  \"radius\": 200\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/geofence",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "geofence"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: create geofence.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('geofence create response returned', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const id = json.id || json.geofenceId || json.data?.id || json.data?.geofenceId;",
+                  "  if (id) pm.collectionVariables.set('geofence_id', id);",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Geofence",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Demo Geofence {{run_id}}\",\n  \"type\": \"circle\",\n  \"status\": \"active\",\n  \"projectId\": \"{{project_id}}\",\n  \"coordinates\": [\n    [\n      77.5946,\n      12.9716\n    ]\n  ],\n  \"radius\": 250\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/geofence/{{geofence_id}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "geofence",
+                "{{geofence_id}}"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: update geofence."
+        },
+        {
+          "name": "Get Geofence",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/location/geofence/{{geofence_id}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "geofence",
+                "{{geofence_id}}"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: fetch geofence."
+        },
+        {
+          "name": "Delete Geofence",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/location/geofence/{{geofence_id}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "geofence",
+                "{{geofence_id}}"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: delete geofence."
+        },
+        {
+          "name": "List Geofences",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"page\": 1,\n  \"size\": 10,\n  \"projectId\": \"{{project_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/geofences",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "geofences"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: list geofences."
+        },
+        {
+          "name": "Geofence Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"geofenceId\": \"{{geofence_id}}\",\n  \"coordinates\": {\n    \"lat\": {{lat}},\n    \"lng\": {{lng}}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{api_gateway}}/api/location/geofence/status",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "location",
+                "geofence",
+                "status"
+              ]
+            }
+          },
+          "description": "Gateway → location-service: geofence status."
+        }
+      ]
+    },
+    {
+      "name": "Organizations (gateway → api-gateway)",
+      "description": "Organization onboarding and fleet-management endpoints. Seeded fixtures: org-himalayan-fleet, org-kumaon-rides, vehicle UK05TA4321, driver driver-org-mohan, invite token himalayan-driver-invite-dev. Run Admin OTP first to populate admin_token.",
+      "item": [
+        {
+          "name": "Admin OTP - Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/auth/admin/otp/request",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "otp",
+                "request"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{super_admin_phone}}\"\n}"
+            }
+          },
+          "description": "Requests a super-admin OTP. In local dev, response includes devOtpCode.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin otp requested', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "if (json.devOtpCode) pm.collectionVariables.set('admin_otp', json.devOtpCode);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin OTP - Verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/auth/admin/otp/verify",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "otp",
+                "verify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{super_admin_phone}}\",\n  \"otp\": \"{{admin_otp}}\"\n}"
+            }
+          },
+          "description": "Verifies the super-admin OTP and stores admin_token for protected organization requests.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin otp verified', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('admin_token', json.accessToken);",
+                  "pm.collectionVariables.set('admin_user_id', json.userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - List Organizations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/admin/organizations",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizations"
+              ]
+            }
+          },
+          "description": "Lists all organizations. Saves useful seeded IDs for later requests.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('listed organizations', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "const orgs = json.data.organizations || [];",
+                  "const active = orgs.find((org) => org.id === 'org-himalayan-fleet') || orgs[0];",
+                  "const pending = orgs.find((org) => org.id === 'org-kumaon-rides');",
+                  "if (active) pm.collectionVariables.set('organization_id', active.id);",
+                  "if (pending) pm.collectionVariables.set('pending_organization_id', pending.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - List Organizations by Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/admin/organizations?status=PENDING_REVIEW",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING_REVIEW"
+                }
+              ]
+            }
+          },
+          "description": "Filters organizations waiting for review.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('listed pending organizations', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Create Organization",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/admin/organizations",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalName\": \"Postman Demo Logistics Pvt Ltd\",\n  \"tradeName\": \"Postman Demo Fleet\",\n  \"ownerPhone\": \"{{postman_org_owner_phone}}\",\n  \"ownerEmail\": \"owner+{{run_id}}@postman-demo.example\",\n  \"ownerName\": \"Postman Owner\",\n  \"gstin\": \"05AAPCP1234K1Z9\",\n  \"pan\": \"AAPCP1234K\",\n  \"planTier\": \"SOLO\"\n}"
+            }
+          },
+          "description": "Creates a draft organization as SUPER_ADMIN. Uses postman_org_owner_phone collection variable.",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('run_id')) pm.collectionVariables.set('run_id', Date.now().toString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created organization', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('created_organization_id', json.data.organization.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Get Organization Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/admin/organizations/{{organization_id}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizations",
+                "{{organization_id}}"
+              ]
+            }
+          },
+          "description": "Gets full organization details, including members, drivers, vehicles, documents, audit events, and org KYC. Saves IDs from the seeded active org.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('got organization details', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "const org = json.data.organization;",
+                  "const firstDriver = (org.drivers || []).find((link) => link.driverId === 'driver-org-mohan') || (org.drivers || [])[0];",
+                  "const firstVehicle = (org.vehicles || []).find((link) => link.vehicle?.plate === 'UK05TA4321') || (org.vehicles || [])[0];",
+                  "const firstDocument = (org.documents || [])[0];",
+                  "const firstMember = (org.members || [])[0];",
+                  "const firstKyc = (json.data.kycRecords || [])[0];",
+                  "if (firstDriver) pm.collectionVariables.set('org_driver_id', firstDriver.driverId);",
+                  "if (firstVehicle) pm.collectionVariables.set('org_vehicle_id', firstVehicle.vehicleId);",
+                  "if (firstDocument) pm.collectionVariables.set('org_document_id', firstDocument.id);",
+                  "if (firstMember) pm.collectionVariables.set('org_member_id', firstMember.id);",
+                  "if (firstKyc) pm.collectionVariables.set('org_kyc_id', firstKyc.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Update Organization Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/admin/organizations/{{pending_organization_id}}/status",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizations",
+                "{{pending_organization_id}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"reason\": \"Approved from Postman collection smoke test\"\n}"
+            }
+          },
+          "description": "Approves the seeded pending organization. Use Reset/Seed DB if you want it back in PENDING_REVIEW.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('updated organization status', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Review Organization Document",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/admin/organizations/{{organization_id}}/documents/{{org_document_id}}/review",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizations",
+                "{{organization_id}}",
+                "documents",
+                "{{org_document_id}}",
+                "review"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}"
+            }
+          },
+          "description": "Reviews an organization document as SUPER_ADMIN.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('reviewed organization document', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Review Organization Driver Compliance",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/admin/organizations/{{organization_id}}/drivers/{{org_driver_id}}/compliance",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizations",
+                "{{organization_id}}",
+                "drivers",
+                "{{org_driver_id}}",
+                "compliance"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"reason\": \"Compliance cleared from Postman\"\n}"
+            }
+          },
+          "description": "Approves, suspends, or removes a driver link inside an organization.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('reviewed driver compliance', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin - Review KYC Record",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/admin/kyc/{{org_kyc_id}}/review",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "kyc",
+                "{{org_kyc_id}}",
+                "review"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}"
+            }
+          },
+          "description": "Reviews an organization KYC record as SUPER_ADMIN.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('reviewed kyc', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - My Memberships",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/me",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "me"
+              ]
+            }
+          },
+          "description": "Returns memberships for the current token. For SUPER_ADMIN seeded login this is usually empty unless the user is also an org member.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('got my organizations', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - Get Organization",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}"
+              ]
+            }
+          },
+          "description": "Read-side organization detail endpoint. SUPER_ADMIN and ADMIN can access it.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('got organization', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - Update Organization Details",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tradeName\": \"Himalayan Fleet\",\n  \"primaryEmail\": \"ops@himalayanfleet.example\",\n  \"operatingRegions\": [\n    \"Pithoragarh\",\n    \"Dehradun\",\n    \"Haldwani\",\n    \"Almora\"\n  ],\n  \"planTier\": \"GROWTH\"\n}"
+            }
+          },
+          "description": "Updates organization details. SUPER_ADMIN token is accepted by this endpoint.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('updated organization details', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - List Members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/members",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "members"
+              ]
+            }
+          },
+          "description": "Lists active/non-removed organization members and their users.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('listed members', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "const member = (json.data.members || [])[0];",
+                  "if (member) pm.collectionVariables.set('org_member_id', member.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - Update Member Role or Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/members/{{org_member_id}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "members",
+                "{{org_member_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"OWNER\",\n  \"status\": \"ACTIVE\",\n  \"reason\": \"Keep seeded owner active\"\n}"
+            }
+          },
+          "description": "Updates a member. This sample keeps the seeded owner unchanged.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('updated member', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - List Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/drivers",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "drivers"
+              ]
+            }
+          },
+          "description": "Lists organization-driver links and driver KYC.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('listed organization drivers', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "const link = (json.data.links || [])[0];",
+                  "if (link) pm.collectionVariables.set('org_driver_id', link.driverId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - List Vehicles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/vehicles",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "vehicles"
+              ]
+            }
+          },
+          "description": "Lists active organization-vehicle links and nested vehicle documents/assignments.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('listed organization vehicles', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "const ownership = (json.data.vehicles || [])[0];",
+                  "if (ownership) pm.collectionVariables.set('org_vehicle_id', ownership.vehicleId);",
+                  "const assignment = ownership?.vehicle?.assignments?.[0];",
+                  "if (assignment) pm.collectionVariables.set('org_assignment_id', assignment.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - List KYC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/kyc",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "kyc"
+              ]
+            }
+          },
+          "description": "Lists organization-level KYC records.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('listed organization kyc', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "const kyc = (json.data.kycRecords || [])[0];",
+                  "if (kyc) pm.collectionVariables.set('org_kyc_id', kyc.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - List Invitations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/invitations",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "invitations"
+              ]
+            }
+          },
+          "description": "Lists organization invitations. SUPER_ADMIN and ADMIN can read.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('listed invitations', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org - Audit Log",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/audit-log?limit=20",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "audit-log"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "description": "Reads recent organization audit events.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('listed audit events', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Public - Invitation Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/invitations/{{organization_invite_token}}/details",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "invitations",
+                "{{organization_invite_token}}",
+                "details"
+              ]
+            }
+          },
+          "description": "Public invite landing-page lookup. Defaults to seeded token himalayan-driver-invite-dev.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('got invitation details', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org Member - Create Invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{org_member_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/invitations",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "invitations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{invitee_phone}}\",\n  \"name\": \"Invited Driver\",\n  \"role\": \"DRIVER\"\n}"
+            }
+          },
+          "description": "Requires org_member_token for an ACTIVE organization member. SUPER_ADMIN token is intentionally not enough for this write endpoint.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created invitation', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org Member - Plate Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{org_member_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/vehicles/plate-check?plate={{new_vehicle_plate}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "vehicles",
+                "plate-check"
+              ],
+              "query": [
+                {
+                  "key": "plate",
+                  "value": "{{new_vehicle_plate}}"
+                }
+              ]
+            }
+          },
+          "description": "Requires org_member_token for an ACTIVE organization member.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('checked plate', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org Member - Register Vehicle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{org_member_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/vehicles",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "vehicles"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plate\": \"{{new_vehicle_plate}}\",\n  \"type\": \"Ertiga\",\n  \"ownershipType\": \"ORGANIZATION\"\n}"
+            }
+          },
+          "description": "Requires org_member_token for an ACTIVE organization member. Saves created vehicle id when successful.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('registered vehicle', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "if (json.data?.vehicle?.id) pm.collectionVariables.set('created_vehicle_id', json.data.vehicle.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org Member - Upload Vehicle Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{org_member_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/vehicles/{{org_vehicle_id}}/documents",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "vehicles",
+                "{{org_vehicle_id}}",
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"VEHICLE_INSURANCE\",\n  \"url\": \"https://storage.moveos.local/docs/postman/insurance.pdf\",\n  \"expiresAt\": \"2027-12-31T18:29:00.000Z\"\n}"
+            }
+          },
+          "description": "Requires org_member_token for an ACTIVE organization member and a vehicle owned by the org.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('uploaded vehicle document', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org Member - Submit Vehicle KYC",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{org_member_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/vehicles/{{org_vehicle_id}}/kyc",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "vehicles",
+                "{{org_vehicle_id}}",
+                "kyc"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentType\": \"VEHICLE_INSURANCE\",\n  \"documentUrl\": \"https://storage.moveos.local/docs/postman/insurance.pdf\",\n  \"documentNo\": \"INS-POSTMAN-001\",\n  \"expiresAt\": \"2027-12-31T18:29:00.000Z\"\n}"
+            }
+          },
+          "description": "Requires org_member_token for an ACTIVE organization member and a vehicle owned by the org.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('submitted vehicle kyc', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org Member - Create Driver Vehicle Assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{org_member_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/assignments",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "assignments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"{{org_driver_id}}\",\n  \"vehicleId\": \"{{org_vehicle_id}}\",\n  \"policy\": \"PERMANENT\",\n  \"startsAt\": \"2026-05-24T03:30:00.000Z\"\n}"
+            }
+          },
+          "description": "Requires org_member_token for an ACTIVE organization member. Uses seeded driver and vehicle IDs by default.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created assignment', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "const json = pm.response.json();",
+                  "if (json.data?.assignment?.id) pm.collectionVariables.set('org_assignment_id', json.data.assignment.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Org Member - Update Assignment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{org_member_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_gateway}}/api/organizations/{{organization_id}}/assignments/{{org_assignment_id}}",
+              "host": [
+                "{{api_gateway}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "{{organization_id}}",
+                "assignments",
+                "{{org_assignment_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"reason\": \"Activated from Postman\"\n}"
+            }
+          },
+          "description": "Requires org_member_token for an ACTIVE organization member.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('updated assignment', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "api_gateway",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "description": "Saved from Onboarding/Complete or Auth OTP/Verify OTP."
+    },
+    {
+      "key": "onboarding_token",
+      "value": "",
+      "description": "Saved from Onboarding/Create Session."
+    },
+    {
+      "key": "ride_id",
+      "value": "ride_seed_001",
+      "description": "Must be an existing Ride id before running ride-service status endpoints."
+    },
+    {
+      "key": "driver_id",
+      "value": "",
+      "description": "Saved from onboarding completion or auth OTP."
+    },
+    {
+      "key": "geofence_id",
+      "value": "geo_seed_001",
+      "description": "Saved from Create Geofence when the location provider returns an id."
+    },
+    {
+      "key": "device_token",
+      "value": "postman-device-token-{{run_id}}"
+    },
+    {
+      "key": "lat",
+      "value": "12.9716"
+    },
+    {
+      "key": "lng",
+      "value": "77.5946"
+    },
+    {
+      "key": "uuid",
+      "value": "{{$randomUUID}}"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "description": "Saved from Onboarding/Complete or Auth OTP/Verify OTP."
+    },
+    {
+      "key": "onboarding_otp",
+      "value": "",
+      "description": "Saved from Onboarding/Profile request OTP in non-production."
+    },
+    {
+      "key": "auth_otp",
+      "value": "",
+      "description": "Saved from Auth OTP/Request OTP."
+    },
+    {
+      "key": "session_id",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "onboarding_user_id",
+      "value": ""
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "driver_phone",
+      "value": "+919876543210"
+    },
+    {
+      "key": "device_fingerprint",
+      "value": "device-fp-postman"
+    },
+    {
+      "key": "project_id",
+      "value": "moveos-postman-demo"
+    },
+    {
+      "key": "place_id",
+      "value": "ChIJbU60yXAWrjsR4E9-UejD3_g"
+    },
+    {
+      "key": "photo_reference",
+      "value": "demo_photo_reference"
+    },
+    {
+      "key": "super_admin_phone",
+      "value": "+919876543210",
+      "description": "Seeded MoveOS super-admin phone."
+    },
+    {
+      "key": "admin_otp",
+      "value": "",
+      "description": "Saved from Admin OTP - Request in local dev."
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "description": "Saved from Admin OTP - Verify."
+    },
+    {
+      "key": "admin_user_id",
+      "value": "",
+      "description": "Saved from Admin OTP - Verify."
+    },
+    {
+      "key": "organization_id",
+      "value": "org-himalayan-fleet",
+      "description": "Seeded active organization id."
+    },
+    {
+      "key": "pending_organization_id",
+      "value": "org-kumaon-rides",
+      "description": "Seeded pending-review organization id."
+    },
+    {
+      "key": "created_organization_id",
+      "value": "",
+      "description": "Saved from Admin - Create Organization."
+    },
+    {
+      "key": "org_driver_id",
+      "value": "driver-org-mohan",
+      "description": "Seeded organization driver id."
+    },
+    {
+      "key": "org_vehicle_id",
+      "value": "vehicle-org-uk05ta4321",
+      "description": "Seeded organization vehicle id."
+    },
+    {
+      "key": "org_assignment_id",
+      "value": "",
+      "description": "Saved from Org - List Vehicles or assignment creation."
+    },
+    {
+      "key": "org_member_id",
+      "value": "",
+      "description": "Saved from organization detail/member listing."
+    },
+    {
+      "key": "org_document_id",
+      "value": "org-doc-himalayan-gst",
+      "description": "Seeded organization document id."
+    },
+    {
+      "key": "org_kyc_id",
+      "value": "kyc-org-himalayan-fleet-gst",
+      "description": "Seeded organization KYC id."
+    },
+    {
+      "key": "organization_invite_token",
+      "value": "himalayan-driver-invite-dev",
+      "description": "Seeded invite token for public invite details."
+    },
+    {
+      "key": "org_member_token",
+      "value": "",
+      "description": "JWT for an ACTIVE organization member. Required for org write endpoints that enforce membership."
+    },
+    {
+      "key": "invitee_phone",
+      "value": "+919876540199",
+      "description": "Phone used for organization invitation examples."
+    },
+    {
+      "key": "new_vehicle_plate",
+      "value": "UK05TA9001",
+      "description": "Plate used by vehicle registration examples."
+    },
+    {
+      "key": "postman_org_owner_phone",
+      "value": "+919876560010",
+      "description": "Owner phone used by Admin - Create Organization."
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+/**
+ * Logging utility placeholder.
+ */
+export {};

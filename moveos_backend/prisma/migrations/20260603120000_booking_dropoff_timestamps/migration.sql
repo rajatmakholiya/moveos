@@ -1,0 +1,3 @@
+ALTER TABLE "SeatBooking"
+  ADD COLUMN IF NOT EXISTS "arrivedAtDropoffAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "droppedOffAt" TIMESTAMP(3);

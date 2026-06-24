@@ -1,0 +1,3 @@
+ALTER TABLE "SeatBooking"
+  ADD COLUMN IF NOT EXISTS "pickupJson" JSONB,
+  ADD COLUMN IF NOT EXISTS "dropoffJson" JSONB;

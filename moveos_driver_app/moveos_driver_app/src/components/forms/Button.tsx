@@ -1,0 +1,4 @@
+/**
+ * Button primitive placeholder.
+ */
+export {};

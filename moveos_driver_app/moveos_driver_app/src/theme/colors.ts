@@ -1,0 +1,4 @@
+/**
+ * Color tokens placeholder.
+ */
+export {};

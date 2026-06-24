@@ -1,0 +1,802 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  DRIVER
+  ADMIN
+  RIDER
+  PASSENGER
+  SUPER_ADMIN
+  ORG_ADMIN
+}
+
+enum OrgPlanTier {
+  SOLO
+  GROWTH
+  ENTERPRISE
+}
+
+enum KycEntityType {
+  ORGANIZATION
+  DRIVER
+  VEHICLE
+}
+
+enum KycDocumentType {
+  GST_CERTIFICATE
+  PAN_CARD
+  AADHAAR
+  TRADE_LICENSE
+  VEHICLE_REGISTRATION
+  VEHICLE_INSURANCE
+  POLLUTION_CERTIFICATE
+  DRIVING_LICENSE
+  MEDICAL_FITNESS_CERTIFICATE
+  BANK_ACCOUNT
+  CANCELLED_CHEQUE
+  INCORPORATION_CERTIFICATE
+  OTHER
+}
+
+enum OrganizationStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum OrganizationMemberRole {
+  OWNER
+  ADMIN
+  FLEET_MANAGER
+  COMPLIANCE_MANAGER
+  DRIVER
+  VIEWER
+}
+
+enum OrganizationMemberStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum OrganizationDriverStatus {
+  INVITED
+  PENDING_DRIVER_ACCEPTANCE
+  PENDING_COMPLIANCE
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum VehicleOwnershipType {
+  INDIVIDUAL
+  ORGANIZATION
+  LEASED
+  THIRD_PARTY
+}
+
+enum AssignmentStatus {
+  PENDING_COMPLIANCE
+  ACTIVE
+  SUSPENDED
+  ENDED
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
+enum DriverStatus {
+  OFFLINE
+  ONLINE
+  BUSY
+}
+
+enum KycStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VehicleDocumentStatus {
+  MISSING
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum ComplianceStatus {
+  CLEAR
+  BLOCKED
+}
+
+enum VehicleStatus {
+  INACTIVE
+  ACTIVE
+  OUT_OF_SERVICE
+}
+
+enum RideStatus {
+  REQUESTED
+  OFFERED
+  ACCEPTED
+  ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  INITIATED
+  AUTHORIZED
+  SETTLED
+  FAILED
+  PENDING
+  PAID
+  REFUNDED
+}
+
+enum WalletEntryType {
+  CREDIT
+  DEBIT
+}
+
+enum AccountType {
+  DRIVER
+  RIDER
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  WALLET
+  UPI
+}
+
+enum TripStatus {
+  DRAFT
+  OPEN
+  DEPARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum SeatType {
+  FRONT
+  BACK
+}
+
+enum LuggageSize {
+  SMALL
+  LARGE
+  OVERSIZED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+model User {
+  id                 String                  @id @default(cuid())
+  phone              String                  @unique
+  role               UserRole
+  name               String?
+  email              String?
+  status             UserStatus              @default(PENDING)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  driver             Driver?
+  onboardingSessions OnboardingSession[]     @relation("UserOnboardingSessions")
+  onboardingConsents OnboardingConsent[]     @relation("UserOnboardingConsents")
+  featureFlags       FeatureFlagAssignment[] @relation("UserFeatureFlags")
+  passenger          Passenger?
+}
+
+model Driver {
+  id                   String                    @id @default(cuid())
+  userId               String                    @unique
+  user                 User                      @relation(fields: [userId], references: [id])
+  name                 String
+  rating               Float?                    @default(5)
+  kycStatus            KycStatus                 @default(PENDING)
+  complianceStatus     ComplianceStatus          @default(CLEAR)
+  status               DriverStatus              @default(OFFLINE)
+  // Profile fields added for driver onboarding (Step 3)
+  dob                  DateTime?
+  gender               String?
+  alternatePhone       String?
+  currentAddressJson   Json?
+  permanentAddressJson Json?
+  emergencyContactName String?
+  emergencyContactPhone String?
+  bloodGroup           String?
+  preferredLanguage    String?
+  profilePhotoFileId   String?
+  independentSubmittedAt DateTime?
+  vehicles             DriverVehicleAssignment[]
+  rides                Ride[]                    @relation("RideDriver")
+  scheduledTrips       ScheduledTrip[]
+  documents            DriverDocument[]
+  organizationLinks    OrganizationDriver[]
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+}
+
+model Passenger {
+  id        String        @id @default(cuid())
+  userId    String        @unique
+  user      User          @relation(fields: [userId], references: [id])
+  name      String?
+  createdAt DateTime      @default(now())
+  bookings  SeatBooking[]
+}
+
+model Vehicle {
+  id                         String                    @id @default(cuid())
+  plate                      String                    @unique
+  type                       String
+  vehicleNumber              String?                   @unique
+  vehicleType                String?
+  fuelType                   String?
+  make                       String?
+  model                      String?
+  variant                    String?
+  manufacturingYear          Int?
+  registrationDate           DateTime?
+  registrationState          String?
+  chassisNumber              String?
+  engineNumber               String?
+  color                      String?
+  totalSeats                 Int?
+  frontSeats                 Int?
+  backSeats                  Int?
+  luggageCapacityKg          Int?
+  ownerDriverId              String?
+  ownershipType              VehicleOwnershipType      @default(INDIVIDUAL)
+  ownerName                  String?
+  ownerPhone                 String?
+  ownerAddress               String?
+  commercialPermitNumber     String?
+  permitValidFrom            DateTime?
+  permitValidTill            DateTime?
+  fitnessCertificateNumber   String?
+  fitnessValidTill           DateTime?
+  pollutionCertificateNumber String?
+  pollutionValidTill         DateTime?
+  insurancePolicyNumber      String?
+  insuranceValidTill         DateTime?
+  status                     VehicleStatus             @default(INACTIVE)
+  documentStatus             VehicleDocumentStatus     @default(MISSING)
+  kycStatus                  KycStatus                 @default(NOT_SUBMITTED)
+  complianceStatus           ComplianceStatus          @default(CLEAR)
+  assignments                DriverVehicleAssignment[]
+  rides                      Ride[]                    @relation("RideVehicle")
+  scheduledTrips             ScheduledTrip[]
+  documents                  VehicleDocument[]
+  organizationLinks          OrganizationVehicle[]
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+}
+
+model DriverVehicleAssignment {
+  id               String           @id @default(cuid())
+  driverId         String
+  vehicleId        String
+  organizationId   String?
+  assignedByUserId String?
+  status           AssignmentStatus @default(ACTIVE)
+  assignmentType   String           @default("PRIMARY")
+  note             String?
+  removalReason    String?
+  startsAt         DateTime?
+  endsAt           DateTime?
+  source           String?
+  policyJson       Json?
+  active           Boolean          @default(false)
+  driver           Driver           @relation(fields: [driverId], references: [id])
+  vehicle          Vehicle          @relation(fields: [vehicleId], references: [id])
+
+  @@unique([driverId, vehicleId])
+  @@index([organizationId])
+  @@index([organizationId, vehicleId, status])
+  @@index([organizationId, driverId, status])
+  @@index([vehicleId, assignmentType, status])
+  @@index([driverId, status])
+}
+
+model Ride {
+  id                  String      @id @default(cuid())
+  riderId             String
+  driverId            String?
+  vehicleId           String?
+  status              RideStatus  @default(REQUESTED)
+  pickupJson          Json
+  dropJson            Json
+  pricingSnapshotJson Json
+  startedAt           DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  driver              Driver?     @relation("RideDriver", fields: [driverId], references: [id])
+  vehicle             Vehicle?    @relation("RideVehicle", fields: [vehicleId], references: [id])
+  events              RideEvent[]
+  payments            Payment[]
+}
+
+model RideEvent {
+  id          String   @id @default(cuid())
+  rideId      String
+  type        String
+  payloadJson Json
+  createdAt   DateTime @default(now())
+  ride        Ride     @relation(fields: [rideId], references: [id])
+
+  @@index([rideId])
+}
+
+model DriverDocument {
+  id         String         @id @default(cuid())
+  driverId   String
+  type       String
+  url        String
+  documentNo String?
+  status     DocumentStatus @default(PENDING)
+  expiresAt  DateTime?
+  createdAt  DateTime       @default(now())
+  driver     Driver         @relation(fields: [driverId], references: [id])
+}
+
+model VehicleDocument {
+  id         String         @id @default(cuid())
+  vehicleId  String
+  type       String
+  url        String
+  documentNo String?
+  status     DocumentStatus @default(PENDING)
+  expiresAt  DateTime?
+  createdAt  DateTime       @default(now())
+  vehicle    Vehicle        @relation(fields: [vehicleId], references: [id])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  rideId      String
+  amount      Int           @default(0)
+  method      PaymentMethod
+  status      PaymentStatus @default(INITIATED)
+  providerRef String?
+  createdAt   DateTime      @default(now())
+  ride        Ride          @relation(fields: [rideId], references: [id])
+}
+
+model WalletLedger {
+  id          String          @id @default(cuid())
+  accountType AccountType
+  accountId   String
+  amount      Decimal         @default(0)
+  entryType   WalletEntryType
+  refType     String
+  refId       String
+  createdAt   DateTime        @default(now())
+
+  @@index([accountType, accountId])
+}
+
+enum OnboardingSessionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
+enum VerificationAttemptType {
+  SEND
+  VERIFY
+}
+
+model OnboardingSession {
+  id                   String                  @id @default(cuid())
+  onboardingTokenHash  String                  @unique
+  deviceFingerprint    String
+  referralCode         String?
+  status               OnboardingSessionStatus @default(ACTIVE)
+  userRole             UserRole
+  organizationId       String?
+  organizationInviteId String?
+  onboardingKind       String?
+  userId               String?
+  user                 User?                   @relation("UserOnboardingSessions", fields: [userId], references: [id])
+  locale               String?
+  timezone             String?
+  appVersion           String?
+  deviceModel          String?
+  osVersion            String?
+  expiresAt            DateTime
+  otpCodeHash          String?
+  otpExpiresAt         DateTime?
+  otpLastSentAt        DateTime?
+  otpVerifiedAt        DateTime?
+  phone                String?
+  email                String?
+  name                 String?
+  featureFlagsJson     Json?
+  completedAt          DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  consents             OnboardingConsent[]
+  verificationAttempts VerificationAttempt[]
+}
+
+model OnboardingConsent {
+  id        String            @id @default(cuid())
+  sessionId String
+  userId    String?
+  scope     String
+  value     String
+  locale    String?
+  timezone  String?
+  source    String?
+  createdAt DateTime          @default(now())
+  session   OnboardingSession @relation(fields: [sessionId], references: [id])
+  user      User?             @relation("UserOnboardingConsents", fields: [userId], references: [id])
+
+  @@index([sessionId, scope])
+  @@index([userId, scope])
+}
+
+model VerificationAttempt {
+  id                String                  @id @default(cuid())
+  sessionId         String?
+  phone             String
+  deviceFingerprint String?
+  type              VerificationAttemptType
+  createdAt         DateTime                @default(now())
+  session           OnboardingSession?      @relation(fields: [sessionId], references: [id])
+
+  @@index([phone, type, createdAt])
+  @@index([deviceFingerprint, type, createdAt])
+}
+
+model Referral {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  referredUserId String?
+  sourceUserId   String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+}
+
+model FeatureFlagAssignment {
+  id                String    @id @default(cuid())
+  userId            String?
+  deviceFingerprint String?
+  flags             Json
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  user              User?     @relation("UserFeatureFlags", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([deviceFingerprint])
+}
+
+model IdempotencyKey {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  method     String
+  path       String
+  response   Json
+  statusCode Int
+  createdAt  DateTime @default(now())
+}
+
+model Organization {
+  id               String             @id @default(cuid())
+  legalName        String
+  tradeName        String?
+  status           OrganizationStatus @default(DRAFT)
+  planTier         OrgPlanTier        @default(SOLO)
+  gstin            String?
+  pan              String?
+  taxId            String?
+  registrationNo   String?
+  primaryPhone     String?
+  primaryEmail     String?
+  addressJson      Json?
+  operatingRegions Json?
+  metadataJson     Json?
+  rejectionReason  String?
+  reviewedAt       DateTime?
+  reviewedById     String?
+  createdById      String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  members     OrganizationMember[]
+  drivers     OrganizationDriver[]
+  vehicles    OrganizationVehicle[]
+  invitations OrganizationInvitation[]
+  documents   OrganizationDocument[]
+  auditEvents AuditEvent[]
+
+  @@index([status])
+  @@index([createdById])
+}
+
+model OrganizationMember {
+  id             String                   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationMemberRole
+  status         OrganizationMemberStatus @default(INVITED)
+  invitedById    String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model OrganizationDriver {
+  id                        String                   @id @default(cuid())
+  organizationId            String
+  driverId                  String
+  status                    OrganizationDriverStatus @default(INVITED)
+  invitedById               String?
+  acceptedAt                DateTime?
+  startedAt                 DateTime?
+  endedAt                   DateTime?
+  onboardingSubmittedAt     DateTime?
+  // Compliance/activation fields added for Step 4 (super admin verification)
+  activatedAt               DateTime?
+  approvedBySuperAdminId    String?
+  complianceApprovedAt      DateTime?
+  complianceRejectedAt      DateTime?
+  complianceRejectionReason String?
+  metadataJson              Json?
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  driver       Driver       @relation(fields: [driverId], references: [id])
+
+  @@unique([organizationId, driverId])
+  @@index([driverId])
+}
+
+model OrganizationVehicle {
+  id             String               @id @default(cuid())
+  organizationId String
+  vehicleId      String
+  ownershipType  VehicleOwnershipType @default(ORGANIZATION)
+  status         String               @default("ACTIVE")
+  startedAt      DateTime             @default(now())
+  endedAt        DateTime?
+  metadataJson   Json?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  vehicle      Vehicle      @relation(fields: [vehicleId], references: [id])
+
+  @@unique([organizationId, vehicleId])
+  @@index([vehicleId])
+}
+
+model OrganizationInvitation {
+  id                 String    @id @default(cuid())
+  organizationId     String
+  phone              String
+  role               String
+  publicInviteRef    String?   @unique
+  inviteTokenHash    String    @unique
+  status             String    @default("INVITED")
+  expiresAt          DateTime
+  invitedName        String?
+  invitedEmail       String?
+  note               String?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  acceptedByUserId   String?
+  acceptedAt         DateTime?
+  createdByUserId    String?
+  // OTP state (stored per-invitation to keep invite flow self-contained)
+  otpCodeHash        String?
+  otpExpiresAt       DateTime?
+  otpLastSentAt      DateTime?
+  otpAttemptCount    Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, phone])
+  @@index([organizationId, phone, status])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([createdByUserId])
+}
+
+model OrganizationDocument {
+  id             String         @id @default(cuid())
+  organizationId String
+  type           String
+  url            String
+  documentNo     String?
+  status         DocumentStatus @default(PENDING)
+  expiresAt      DateTime?
+  reviewedAt     DateTime?
+  reviewedById   String?
+  rejectionNote  String?
+  createdAt      DateTime       @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, type])
+}
+
+model KycRecord {
+  id              String          @id @default(cuid())
+  entityType      KycEntityType
+  entityId        String
+  documentType    KycDocumentType
+  documentUrl     String
+  documentNo      String?
+  status          DocumentStatus  @default(PENDING)
+  expiresAt       DateTime?
+  reviewedAt      DateTime?
+  reviewedById    String?
+  rejectionReason String?
+  metadataJson    Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([status])
+}
+
+model AuditEvent {
+  id             String   @id @default(cuid())
+  actorUserId    String?
+  organizationId String?
+  targetType     String
+  targetId       String?
+  action         String
+  beforeJson     Json?
+  afterJson      Json?
+  reason         String?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([targetType, targetId])
+  @@index([actorUserId])
+}
+
+model Route {
+  id                       String          @id @default(cuid())
+  name                     String
+  originLabel              String
+  destinationLabel         String
+  distanceKm               Int
+  estimatedHours           Int
+  isActive                 Boolean         @default(true)
+  baseFrontPrice           Int
+  baseBackPrice            Int
+  fromCity                 String
+  toCity                   String
+  routeName                String
+  baseFarePaise            Int
+  estimatedDurationMinutes Int
+  status                   String          @default("ACTIVE")
+  metadataJson             Json?
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
+  scheduledTrips           ScheduledTrip[]
+
+  @@unique([fromCity, toCity])
+  @@index([status])
+}
+
+model ScheduledTrip {
+  id               String        @id @default(cuid())
+  routeId          String
+  route            Route         @relation(fields: [routeId], references: [id])
+  driverId         String
+  driver           Driver        @relation(fields: [driverId], references: [id])
+  vehicleId        String?
+  vehicle          Vehicle?      @relation(fields: [vehicleId], references: [id])
+  departureAt      DateTime
+  frontSeatsTotal  Int           @default(1)
+  backSeatsTotal   Int           @default(4)
+  frontSeatsBooked Int           @default(0)
+  backSeatsBooked  Int           @default(0)
+  status           TripStatus    @default(OPEN)
+  departurePoint   String
+  luggagePolicy    String?
+  notes            String?
+  departedAt       DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  bookings         SeatBooking[]
+  events           TripEvent[]
+}
+
+model TripEvent {
+  id          String        @id @default(cuid())
+  tripId      String
+  type        String
+  payloadJson Json
+  createdAt   DateTime      @default(now())
+  trip        ScheduledTrip @relation(fields: [tripId], references: [id])
+
+  @@index([tripId])
+}
+
+model SeatBooking {
+  id                String         @id @default(cuid())
+  tripId            String
+  trip              ScheduledTrip  @relation(fields: [tripId], references: [id])
+  passengerId       String?
+  passenger         Passenger?     @relation(fields: [passengerId], references: [id])
+  agentId           String?
+  passengerName     String
+  passengerPhone    String
+  pickupJson        Json?
+  dropoffJson       Json?
+  seatType          SeatType
+  luggageSize       LuggageSize    @default(SMALL)
+  luggageSurcharge  Int            @default(0)
+  baseFare          Int
+  totalFare         Int
+  paymentMethod     PaymentMethod
+  paymentStatus     PaymentStatus  @default(PENDING)
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  status            BookingStatus  @default(CONFIRMED)
+  emergencyContact  String?
+  gstin             String?
+  arrivedAtPickupAt DateTime?
+  pickedUpAt        DateTime?
+  arrivedAtDropoffAt DateTime?
+  droppedOffAt      DateTime?
+  noShowReason      String?
+  createdAt         DateTime       @default(now())
+  invoice           InvoiceRecord?
+}
+
+model InvoiceRecord {
+  id        String      @id @default(cuid())
+  bookingId String      @unique
+  booking   SeatBooking @relation(fields: [bookingId], references: [id])
+  invoiceNo String      @unique
+  pdfUrl    String?
+  issuedAt  DateTime    @default(now())
+}
