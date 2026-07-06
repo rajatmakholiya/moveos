@@ -285,20 +285,25 @@ async function main() {
     );
   }
 
-  // ── Full approval fails — AADHAAR missing ─────────────────────────────────
+  // ── Full approval succeeds with only DRIVING_LICENSE — AADHAAR is optional ─
 
   {
+    const updates: any[] = [];
     const c = controller({
-      driver: { findUnique: async () => fullDriver() },
-      organizationDriver: { findUnique: async () => orgDriverStub() },
+      driver: {
+        findUnique: async () => fullDriver(),
+        update: async ({ data }: any) => ({ id: 'drv_1', ...data }),
+      },
+      organizationDriver: {
+        findUnique: async () => orgDriverStub(),
+        update: async ({ data }: any) => { updates.push(data); return { ...orgDriverStub(), ...data }; },
+      },
       kycRecord: { findMany: async () => [approvedKyc('DRIVING_LICENSE')] },
+      auditEvent: { create: async () => ({}) },
     });
 
-    await assert.rejects(
-      () => c.approveDriver(superAdminReq, 'drv_1', { organizationDriverId: 'od_1' }),
-      (err: any) => err.response?.error_code === 'missing_required_documents',
-      'full approval fails when AADHAAR is missing',
-    );
+    const result = await c.approveDriver(superAdminReq, 'drv_1', { organizationDriverId: 'od_1' });
+    assert.equal(result.data.status, 'ACTIVE', 'AADHAAR is optional — approved DL alone is sufficient');
   }
 
   // ── Full approval fails — mandatory doc is PENDING (not approved) ──────────
@@ -338,8 +343,9 @@ async function main() {
 
     await assert.rejects(
       () => c.approveDriver(superAdminReq, 'drv_1', { organizationDriverId: 'od_1' }),
-      (err: any) => err.response?.error_code === 'mandatory_docs_not_approved',
-      'approval fails when mandatory doc is REJECTED',
+      // DL is approved here; the REJECTED Aadhaar (a submitted optional doc) is what blocks
+      (err: any) => err.response?.error_code === 'optional_docs_not_approved',
+      'approval fails when a submitted optional doc is REJECTED',
     );
   }
 
@@ -370,7 +376,10 @@ async function main() {
     const updates: any[] = [];
     const auditCreated: any[] = [];
     const c = controller({
-      driver: { findUnique: async () => fullDriver() },
+      driver: {
+        findUnique: async () => fullDriver(),
+        update: async ({ data }: any) => ({ id: 'drv_1', ...data }),
+      },
       organizationDriver: {
         findUnique: async () => orgDriverStub(),
         update: async ({ data }: any) => { updates.push(data); return { ...orgDriverStub(), ...data }; },
@@ -398,7 +407,10 @@ async function main() {
   {
     let updateCount = 0;
     const c = controller({
-      driver: { findUnique: async () => fullDriver() },
+      driver: {
+        findUnique: async () => fullDriver(),
+        update: async ({ data }: any) => ({ id: 'drv_1', ...data }),
+      },
       organizationDriver: {
         findUnique: async () => orgDriverStub(),
         update: async ({ data }: any) => { updateCount++; return { ...orgDriverStub(), ...data }; },

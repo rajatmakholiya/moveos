@@ -37,6 +37,11 @@ export default function DriverDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({ totalEarningsPaise: 0, openSeats: 0, activeRoutes: 0, bookings: 0 });
   const [compliance, setCompliance] = useState({ canAcceptBookings: true, insurance: 'VERIFIED' });
+  const [blockedInfo, setBlockedInfo] = useState<{
+    message: string;
+    reasons: Array<{ code: string; message: string; owner?: string }>;
+    actions: Array<{ code: string; label: string }>;
+  } | null>(null);
   const [contexts, setContexts] = useState<OperatingContext[]>([]);
   const [selectedContext, setSelectedContext] = useState<string | null>(null);
 
@@ -136,12 +141,28 @@ export default function DriverDashboardPage() {
     const previousSince = onlineSince;
     setOnline(nextOnline);
     setOnlineSince(nextOnline ? new Date() : null);
+    setBlockedInfo(null);
 
     try {
       await api.post(`/drivers/me/${nextOnline ? 'go-online' : 'go-offline'}`, {}, token ?? undefined);
-    } catch {
+    } catch (error) {
       setOnline(previousOnline);
       setOnlineSince(previousSince);
+      // Surface exactly why the driver is blocked — never a vague failure.
+      if (nextOnline) {
+        const details = (error as { details?: unknown })?.details as Record<string, unknown> | undefined;
+        const complianceInfo = (details?.compliance ?? {}) as {
+          blockedReasons?: Array<{ code: string; message: string; owner?: string }>;
+          nextActions?: Array<{ code: string; label: string }>;
+        };
+        setBlockedInfo({
+          message: typeof details?.message === 'string'
+            ? details.message
+            : (error as { message?: string })?.message ?? copy(lang, 'You cannot go online yet.', 'आप अभी ऑनलाइन नहीं जा सकते।'),
+          reasons: complianceInfo.blockedReasons ?? [],
+          actions: complianceInfo.nextActions ?? [],
+        });
+      }
     }
   };
 
@@ -183,6 +204,33 @@ export default function DriverDashboardPage() {
           {online ? tx('driverGoOffline', lang) : tx('driverGoOnline', lang)}
         </Button>
       </section>
+      {/* Blocked-reason banner — explains exactly why go-online failed and how to fix it */}
+      {blockedInfo ? (
+        <section className="mt-5 rounded-2xl border-2 border-[var(--red-600,#dc2626)] bg-red-50 p-4 shadow-card">
+          <p className="font-medium text-[var(--red-600,#dc2626)]">{copy(lang, 'You cannot go online yet', 'आप अभी ऑनलाइन नहीं जा सकते')}</p>
+          <ul className="mt-2 space-y-1">
+            {(blockedInfo.reasons.length > 0 ? blockedInfo.reasons : [{ code: 'BLOCKED', message: blockedInfo.message }]).map((reason) => (
+              <li key={reason.code} className="text-small text-[var(--stone-800,#292524)]">• {reason.message}</li>
+            ))}
+          </ul>
+          {blockedInfo.actions.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {blockedInfo.actions.map((action) => (
+                <li key={action.code} className="text-small font-medium text-[var(--stone-800,#292524)]">→ {action.label}</li>
+              ))}
+            </ul>
+          )}
+          <Button
+            className="mt-3"
+            size="sm"
+            variant="secondary"
+            onClick={() => router.push(blockedInfo.reasons.some((r) => r.code === 'DRIVER_KYC_NOT_APPROVED') ? '/driver/onboarding/verify' : '/driver/onboarding/profile')}
+          >
+            {copy(lang, 'Fix now', 'अभी ठीक करें')}
+          </Button>
+        </section>
+      ) : null}
+
       <section className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-card">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -226,7 +274,12 @@ export default function DriverDashboardPage() {
         </div>
       </section>
       <section className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
-        <h2 className="font-display text-heading text-[var(--text-primary)]">{copy(lang, 'Dashboard', 'डैशबोर्ड')}</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-display text-heading text-[var(--text-primary)]">{copy(lang, 'Dashboard', 'डैशबोर्ड')}</h2>
+          <button type="button" className="text-small font-medium text-[var(--brand)]" onClick={() => router.push('/driver/earnings')}>
+            {copy(lang, 'Earnings & payouts →', 'कमाई और भुगतान →')}
+          </button>
+        </div>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Earning label={copy(lang, 'This week', 'इस सप्ताह')} value={formatCurrency(earnings.week)} />
           <Earning label={copy(lang, 'This month', 'इस महीने')} value={formatCurrency(earnings.month)} />

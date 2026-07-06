@@ -41,8 +41,8 @@ export class DispatchController {
   }
 
   @Post('requests/:requestId/accept')
-  acceptRequest(@Param('requestId') requestId: string, @Body() body: RideDecisionDto) {
-    const result = this.dispatchService.acceptRequest(requestId, body.driverId);
+  async acceptRequest(@Param('requestId') requestId: string, @Body() body: RideDecisionDto) {
+    const result = await this.dispatchService.acceptRequest(requestId, body.driverId);
     if (!result) throw new NotFoundException('Request not found');
     return result;
   }

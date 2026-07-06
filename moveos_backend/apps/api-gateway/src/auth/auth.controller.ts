@@ -1,46 +1,85 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Post, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  ForbiddenException,
+  Inject,
+  Post,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '@common/index';
-import { OrganizationMemberRole, OrganizationMemberStatus } from '@prisma/client';
+import { PrismaService, RedisService, SMS_PROVIDER, SmsProvider } from '@common/index';
+import { OrganizationMemberRole, OrganizationMemberStatus, UserRole } from '@prisma/client';
+import { createHash, randomInt } from 'crypto';
 import { OtpRequestDto, OtpVerifyDto, RefreshTokenDto } from '../dto/auth.dto';
 
-type StoredOtp = { code: string; driverId: string; role: 'DRIVER' | 'ADMIN' };
-type AdminOtp = { code: string; userId: string };
-type OrgOtp = { code: string; userId: string; membershipIds: string[] };
+const OTP_TTL_SECONDS = 10 * 60;
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_SEND_LIMIT = 5; // per phone per window
+const OTP_SEND_WINDOW_SECONDS = 60 * 60;
 
+type OtpScope = 'driver' | 'admin' | 'org';
+
+/**
+ * Login OTP flows for returning users (driver app re-login, super admin,
+ * org admin). OTP state lives in Redis (hashed code + attempt counter with
+ * TTL) so gateway restarts don't invalidate codes and horizontal scaling
+ * works. First-time signup still goes through onboarding-service.
+ */
 @Controller('auth')
 export class AuthController {
-  private readonly otpStore = new Map<string, StoredOtp>();
-  private readonly adminOtpStore = new Map<string, AdminOtp>();
-  private readonly orgOtpStore = new Map<string, OrgOtp>();
-
   constructor(
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
+  // ─── DRIVER login ──────────────────────────────────────────────────────────
+
   @Post('otp/request')
-  requestOtp(@Body() body: OtpRequestDto) {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const driverId = this.otpStore.get(body.phone)?.driverId ?? `drv_${Date.now()}`;
-    this.otpStore.set(body.phone, { code, driverId, role: 'DRIVER' });
-    return { devOtpCode: code, driverId };
+  async requestOtp(@Body() body: OtpRequestDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { phone: body.phone },
+      include: { driver: true },
+    });
+    // Anti-enumeration: identical response shape whether or not the phone is
+    // registered. The OTP is only stored (and sent) for real driver accounts.
+    if (!user || user.role !== UserRole.DRIVER || !user.driver) {
+      return { sent: true };
+    }
+    const code = await this.issueOtp('driver', body.phone, 'login');
+    return {
+      sent: true,
+      devOtpCode: this.sms.deliversRealSms ? undefined : code,
+    };
   }
 
   @Post('otp/verify')
-  verifyOtp(@Body() body: OtpVerifyDto) {
-    const entry = this.otpStore.get(body.phone);
-    if (!entry || entry.code !== body.otp) {
+  async verifyOtp(@Body() body: OtpVerifyDto) {
+    await this.assertOtpValid('driver', body.phone, body.otp);
+    const user = await this.prisma.user.findUnique({
+      where: { phone: body.phone },
+      include: { driver: true, passenger: true },
+    });
+    if (!user || user.role !== UserRole.DRIVER || !user.driver) {
       throw new BadRequestException('Invalid OTP');
     }
-    const payload = { sub: entry.driverId, phone: body.phone, role: entry.role, driverId: entry.driverId };
+    await this.clearOtp('driver', body.phone);
+    const payload = {
+      sub: user.id,
+      phone: user.phone,
+      role: user.role,
+      driverId: user.driver.id,
+      ...(user.passenger ? { passengerId: user.passenger.id } : {}),
+    };
     const accessToken = this.jwt.sign(payload);
     const refreshToken = this.jwt.sign(payload, {
       expiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d',
     });
-    return { accessToken, refreshToken, driverId: entry.driverId, role: entry.role };
+    return { accessToken, refreshToken, driverId: user.driver.id, userId: user.id, role: user.role };
   }
 
   @Post('refresh')
@@ -61,30 +100,25 @@ export class AuthController {
   async requestAdminOtp(@Body() body: OtpRequestDto) {
     const user = await this.prisma.user.findUnique({ where: { phone: body.phone } });
     if (!user || user.role !== 'SUPER_ADMIN') {
-      // Return same shape regardless to avoid phone enumeration
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      this.adminOtpStore.set(body.phone, { code, userId: 'invalid' });
       return { sent: true };
     }
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    this.adminOtpStore.set(body.phone, { code, userId: user.id });
-    return { sent: true, devOtpCode: code };
+    const code = await this.issueOtp('admin', body.phone, 'login');
+    return { sent: true, devOtpCode: this.sms.deliversRealSms ? undefined : code };
   }
 
   @Post('admin/otp/verify')
   async verifyAdminOtp(@Body() body: OtpVerifyDto) {
-    const entry = this.adminOtpStore.get(body.phone);
-    if (!entry || entry.code !== body.otp || entry.userId === 'invalid') {
-      throw new BadRequestException('Invalid OTP or phone not authorized');
-    }
-    const user = await this.prisma.user.findUnique({ where: { id: entry.userId } });
+    await this.assertOtpValid('admin', body.phone, body.otp);
+    const user = await this.prisma.user.findUnique({ where: { phone: body.phone } });
     if (!user || user.role !== 'SUPER_ADMIN') {
       throw new ForbiddenException('SUPER_ADMIN access required');
     }
-    this.adminOtpStore.delete(body.phone);
+    await this.clearOtp('admin', body.phone);
     const payload = { sub: user.id, phone: user.phone, role: user.role, name: user.name };
     const accessToken = this.jwt.sign(payload, { expiresIn: '8h' });
-    const refreshToken = this.jwt.sign(payload, { expiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d' });
+    const refreshToken = this.jwt.sign(payload, {
+      expiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d',
+    });
     return { accessToken, refreshToken, role: user.role, name: user.name, userId: user.id };
   }
 
@@ -92,6 +126,17 @@ export class AuthController {
 
   @Post('organization/otp/request')
   async requestOrganizationOtp(@Body() body: OtpRequestDto) {
+    const memberships = await this.findAdminMemberships(body.phone);
+    if (memberships.length === 0) {
+      return { sent: true };
+    }
+    const code = await this.issueOtp('org', body.phone, 'login');
+    return { sent: true, devOtpCode: this.sms.deliversRealSms ? undefined : code };
+  }
+
+  @Post('organization/otp/verify')
+  async verifyOrganizationOtp(@Body() body: OtpVerifyDto) {
+    await this.assertOtpValid('org', body.phone, body.otp);
     const user = await this.prisma.user.findUnique({ where: { phone: body.phone } });
     const memberships = user
       ? await this.prisma.organizationMember.findMany({
@@ -107,50 +152,19 @@ export class AuthController {
               ],
             },
           },
+          include: {
+            organization: {
+              select: { id: true, legalName: true, tradeName: true, status: true },
+            },
+          },
         })
       : [];
-
-    if (!user || memberships.length === 0) {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      this.orgOtpStore.set(body.phone, { code, userId: 'invalid', membershipIds: [] });
-      return { sent: true };
-    }
-
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    this.orgOtpStore.set(body.phone, { code, userId: user.id, membershipIds: memberships.map((m) => m.id) });
-    return { sent: true, devOtpCode: code };
-  }
-
-  @Post('organization/otp/verify')
-  async verifyOrganizationOtp(@Body() body: OtpVerifyDto) {
-    const entry = this.orgOtpStore.get(body.phone);
-    if (!entry || entry.code !== body.otp || entry.userId === 'invalid') {
-      throw new BadRequestException('Invalid OTP or phone not authorized');
-    }
-
-    const user = await this.prisma.user.findUnique({ where: { id: entry.userId } });
-    const memberships = await this.prisma.organizationMember.findMany({
-      where: {
-        id: { in: entry.membershipIds },
-        status: OrganizationMemberStatus.ACTIVE,
-      },
-      include: {
-        organization: {
-          select: {
-            id: true,
-            legalName: true,
-            tradeName: true,
-            status: true,
-          },
-        },
-      },
-    });
 
     if (!user || memberships.length === 0) {
       throw new ForbiddenException('Organization admin access required');
     }
 
-    this.orgOtpStore.delete(body.phone);
+    await this.clearOtp('org', body.phone);
     const defaultMembership = memberships[0];
     const payload = {
       sub: user.id,
@@ -162,7 +176,9 @@ export class AuthController {
       orgRole: defaultMembership.role,
     };
     const accessToken = this.jwt.sign(payload, { expiresIn: '8h' });
-    const refreshToken = this.jwt.sign(payload, { expiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d' });
+    const refreshToken = this.jwt.sign(payload, {
+      expiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d',
+    });
     return {
       accessToken,
       refreshToken,
@@ -177,5 +193,82 @@ export class AuthController {
         organization: membership.organization,
       })),
     };
+  }
+
+  // ─── OTP plumbing (Redis-backed) ──────────────────────────────────────────
+
+  private async issueOtp(scope: OtpScope, phone: string, purpose: 'login'): Promise<string> {
+    const redis = this.redis.getClient();
+    const sendCountKey = `otp:${scope}:sends:${phone}`;
+    const sends = await redis.incr(sendCountKey);
+    if (sends === 1) {
+      await redis.expire(sendCountKey, OTP_SEND_WINDOW_SECONDS);
+    }
+    if (sends > OTP_SEND_LIMIT) {
+      throw new BadRequestException({
+        message: 'Too many OTP requests. Please wait before trying again.',
+        error_code: 'rate_limited',
+      });
+    }
+
+    const code = randomInt(100000, 999999).toString();
+    const stateKey = `otp:${scope}:state:${phone}`;
+    await redis.set(stateKey, JSON.stringify({ hash: this.hashOtp(scope, phone, code), attempts: 0 }), 'EX', OTP_TTL_SECONDS);
+    await this.sms.sendOtp(phone, code, { purpose, ttlSeconds: OTP_TTL_SECONDS });
+    return code;
+  }
+
+  private async assertOtpValid(scope: OtpScope, phone: string, otp: string): Promise<void> {
+    const redis = this.redis.getClient();
+    const stateKey = `otp:${scope}:state:${phone}`;
+    const raw = await redis.get(stateKey);
+    if (!raw) {
+      throw new BadRequestException('Invalid OTP');
+    }
+    const state = JSON.parse(raw) as { hash: string; attempts: number };
+    if (state.attempts >= OTP_MAX_ATTEMPTS) {
+      await redis.del(stateKey);
+      throw new BadRequestException({
+        message: 'Too many failed attempts. Please request a new OTP.',
+        error_code: 'rate_limited',
+      });
+    }
+    if (this.hashOtp(scope, phone, otp) !== state.hash) {
+      const ttl = await redis.ttl(stateKey);
+      await redis.set(
+        stateKey,
+        JSON.stringify({ ...state, attempts: state.attempts + 1 }),
+        'EX',
+        ttl > 0 ? ttl : OTP_TTL_SECONDS,
+      );
+      throw new BadRequestException('Invalid OTP');
+    }
+  }
+
+  private async clearOtp(scope: OtpScope, phone: string): Promise<void> {
+    await this.redis.getClient().del(`otp:${scope}:state:${phone}`);
+  }
+
+  private hashOtp(scope: OtpScope, phone: string, code: string): string {
+    return createHash('sha256').update(`${scope}:${phone}:${code}`).digest('hex');
+  }
+
+  private async findAdminMemberships(phone: string) {
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user) return [];
+    return this.prisma.organizationMember.findMany({
+      where: {
+        userId: user.id,
+        status: OrganizationMemberStatus.ACTIVE,
+        role: {
+          in: [
+            OrganizationMemberRole.OWNER,
+            OrganizationMemberRole.ADMIN,
+            OrganizationMemberRole.FLEET_MANAGER,
+            OrganizationMemberRole.COMPLIANCE_MANAGER,
+          ],
+        },
+      },
+    });
   }
 }

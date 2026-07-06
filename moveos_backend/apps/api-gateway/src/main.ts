@@ -65,7 +65,12 @@ async function bootstrap() {
   const configuredCorsOrigins = process.env.CORS_ORIGINS?.split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
-  const corsOrigins = Array.from(new Set([...(configuredCorsOrigins ?? []), ...defaultLocalCorsOrigins]));
+  // Production with configured origins: lock down to exactly those.
+  // Everywhere else: configured + local dev origins.
+  const corsOrigins =
+    process.env.NODE_ENV === 'production' && configuredCorsOrigins?.length
+      ? configuredCorsOrigins
+      : Array.from(new Set([...(configuredCorsOrigins ?? []), ...defaultLocalCorsOrigins]));
 
   app.enableCors({
     origin: corsOrigins.length ? corsOrigins : true,

@@ -1,5 +1,15 @@
 # MoveOS Platform — Complete Architecture & Roadmap
 
+> ⚠️ **HISTORICAL PLANNING DOCUMENT — LARGELY IMPLEMENTED, PARTS STALE.**
+> The roadmap below (Phases 0–5) has been executed as of July 2026: the org
+> multi-tenancy model, admin backend connection, provider-backed KYC,
+> compliance gates, real-time pub/sub, notifications, payouts, refunds,
+> invoices, and clustering are all built. For the current system, read the
+> code plus [README.md](README.md) and [DEPLOYMENT.md](DEPLOYMENT.md).
+> Known intentional deviations: Aadhaar is optional (only DL is mandatory);
+> org plan tiers are SOLO/GROWTH/ENTERPRISE; challans remain a 501 stub; the
+> on-demand Ride flow is parked, not unified.
+
 > **Context:** MoveOS is a scheduled shared-seat intercity ride platform ("Pahadi Rides"), not urban ride-hail. Drivers post trips with seat inventory; passengers browse and book seats. This document covers all three codebases: `moveos_backend` (NestJS microservices), `moveos-pwa` (Next.js 14 passenger + driver app), and `moveos-admin` (Next.js 13 admin portal).
 
 ---

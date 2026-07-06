@@ -38,6 +38,7 @@ export class GatewayEventsGateway
 
     await sub.connect();
     await sub.psubscribe('pahadi:location:*');
+    await sub.subscribe('pahadi:events');
 
     sub.on('pmessage', (_pattern: string, channel: string, message: string) => {
       const driverId = channel.slice('pahadi:location:'.length);
@@ -47,7 +48,39 @@ export class GatewayEventsGateway
       } catch { /* malformed payload — skip */ }
     });
 
-    this.logger.log('Redis location subscriber active (pahadi:location:*)');
+    // Business events → socket rooms, so manifests and booking pages update live
+    // instead of waiting for the next poll.
+    sub.on('message', (_channel: string, message: string) => {
+      try {
+        const evt = JSON.parse(message) as {
+          event?: string;
+          bookingId?: string;
+          tripId?: string;
+          driverId?: string;
+        };
+        switch (evt.event) {
+          case 'booking.paid':
+          case 'booking.cancelled':
+            if (evt.tripId) {
+              this.server.to(`trip:${evt.tripId}`).emit('trip.bookings.updated', evt);
+            }
+            if (evt.bookingId) {
+              this.server.to(`booking:${evt.bookingId}`).emit('booking.status.updated', evt);
+            }
+            break;
+          case 'trip.departed':
+          case 'trip.completed':
+            if (evt.tripId) {
+              this.server.to(`trip:${evt.tripId}`).emit('trip.status.updated', evt);
+            }
+            break;
+          default:
+            break;
+        }
+      } catch { /* malformed payload — skip */ }
+    });
+
+    this.logger.log('Redis subscribers active (pahadi:location:*, pahadi:events)');
   }
 
   async onModuleDestroy() {

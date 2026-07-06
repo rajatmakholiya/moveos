@@ -10,7 +10,8 @@ import { createHash } from 'crypto';
 import { PrismaService } from '@common/index';
 import { RedisService } from '@common/index';
 import { RazorpayService } from '../razorpay/razorpay.service';
-import { TripStatus, SeatType, LuggageSize, PaymentMethod, PaymentStatus, BookingStatus, Prisma } from '@prisma/client';
+import { InvoiceGeneratorService } from './invoice-generator.service';
+import { AccountType, TripStatus, SeatType, LuggageSize, PaymentMethod, PaymentStatus, BookingStatus, Prisma, WalletEntryType } from '@prisma/client';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { PaymentConfirmDto } from './dto/payment-confirm.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
@@ -52,6 +53,29 @@ const LUGGAGE_SURCHARGE: Record<LuggageSize, number> = {
   [LuggageSize.OVERSIZED]: 15000,
 };
 
+// Cancellation policy (hours before scheduled departure → refund % of total fare).
+// Matches the fare-summary copy shown to passengers: "Free before 12 hrs".
+// Overridable via env for regional tuning without a deploy.
+const CANCELLATION_FREE_HOURS = Number(process.env.CANCELLATION_FREE_HOURS ?? 12);
+const CANCELLATION_PARTIAL_HOURS = Number(process.env.CANCELLATION_PARTIAL_HOURS ?? 2);
+const CANCELLATION_PARTIAL_PERCENT = Number(process.env.CANCELLATION_PARTIAL_PERCENT ?? 50);
+
+export function refundPercentFor(departureAt: Date, cancelledAt: Date = new Date()): number {
+  const hoursToDeparture = (departureAt.getTime() - cancelledAt.getTime()) / 3_600_000;
+  if (hoursToDeparture >= CANCELLATION_FREE_HOURS) return 100;
+  if (hoursToDeparture >= CANCELLATION_PARTIAL_HOURS) return CANCELLATION_PARTIAL_PERCENT;
+  return 0;
+}
+
+// Platform commission on fares (percent). Online fares are held by the platform,
+// so the driver is credited net of commission; cash fares are held by the driver,
+// so the platform's cut is debited from their wallet when cash is marked collected.
+const PLATFORM_COMMISSION_PERCENT = Number(process.env.PLATFORM_COMMISSION_PERCENT ?? 10);
+
+function commissionOf(amountPaise: number): number {
+  return Math.floor((amountPaise * PLATFORM_COMMISSION_PERCENT) / 100);
+}
+
 @Injectable()
 export class BookingService {
   private readonly logger = new Logger(BookingService.name);
@@ -60,7 +84,69 @@ export class BookingService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly razorpay: RazorpayService,
+    private readonly invoiceGenerator: InvoiceGeneratorService,
   ) {}
+
+  /**
+   * Generate (and lazily register) the invoice PDF for a booking. Returned as
+   * base64 over the internal boundary; the gateway streams application/pdf.
+   * Invoices are only issued once payment has actually happened.
+   */
+  async getInvoicePdf(bookingId: string) {
+    const booking = await this.prisma.seatBooking.findUnique({
+      where: { id: bookingId },
+      include: { trip: { include: { route: true, driver: true, vehicle: true } }, invoice: true },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.paymentStatus !== PaymentStatus.PAID && booking.paymentStatus !== PaymentStatus.REFUNDED) {
+      throw new BadRequestException({
+        message: 'Invoice is available after payment is completed',
+        error_code: 'invoice_not_available',
+      });
+    }
+
+    // Idempotent invoice number: reuse the existing record or mint the next one.
+    const invoice =
+      booking.invoice ??
+      (await this.prisma.$transaction(async (tx) => {
+        const count = await tx.invoiceRecord.count();
+        const year = new Date().getFullYear();
+        return tx.invoiceRecord.create({
+          data: {
+            bookingId,
+            invoiceNo: `INV-${year}-${String(count + 1).padStart(6, '0')}`,
+          },
+        });
+      }));
+
+    const pdf = await this.invoiceGenerator.generateBookingInvoice({
+      invoiceNo: invoice.invoiceNo,
+      issuedAt: invoice.issuedAt,
+      passengerName: booking.passengerName,
+      passengerPhone: booking.passengerPhone,
+      gstin: booking.gstin ?? undefined,
+      routeName: booking.trip.route.name,
+      departureAt: booking.trip.departureAt,
+      seatType: booking.seatType,
+      baseFare: booking.baseFare,
+      luggageSurcharge: booking.luggageSurcharge,
+      totalFare: booking.totalFare,
+      paymentMethod: booking.paymentMethod === PaymentMethod.CASH ? 'CASH' : 'UPI',
+      paymentStatus: booking.paymentStatus,
+      driverName: booking.trip.driver.name,
+      vehicleNumber: booking.trip.vehicle?.plate ?? '—',
+      bookingId: booking.id,
+    });
+
+    return {
+      invoiceNo: invoice.invoiceNo,
+      fileName: `${invoice.invoiceNo}.pdf`,
+      contentType: 'application/pdf',
+      base64: pdf.toString('base64'),
+      passengerId: booking.passengerId,
+      driverId: booking.trip.driverId,
+    };
+  }
 
   async createBooking(dto: CreateBookingDto) {
     // 1. Fetch trip and verify status
@@ -180,16 +266,24 @@ export class BookingService {
         paymentStatus: PaymentStatus.PAID,
         razorpayPaymentId: dto.razorpayPaymentId,
       },
+      include: { trip: { select: { driverId: true } } },
     });
 
-    await this.redis
-      .getClient()
-      .publish('pahadi:events', JSON.stringify({ event: 'booking.paid', bookingId }));
+    await this.redis.getClient().publish(
+      'pahadi:events',
+      JSON.stringify({
+        event: 'booking.paid',
+        bookingId,
+        tripId: updated.tripId,
+        driverId: updated.trip.driverId,
+        passengerId: updated.passengerId,
+      }),
+    );
 
     return updated;
   }
 
-  async cancelBooking(bookingId: string, _dto: CancelBookingDto) {
+  async cancelBooking(bookingId: string, dto: CancelBookingDto) {
     const booking = await this.prisma.seatBooking.findUnique({
       where: { id: bookingId },
       include: { trip: true },
@@ -198,20 +292,43 @@ export class BookingService {
     if (booking.status === BookingStatus.CANCELLED) {
       throw new BadRequestException('Booking is already cancelled');
     }
-
-    if (booking.paymentStatus === PaymentStatus.PAID) {
-      this.razorpay.logRefundIntent(
-        booking.razorpayPaymentId ?? '',
-        booking.totalFare,
-        bookingId,
-      );
+    if (booking.status === BookingStatus.COMPLETED) {
+      throw new BadRequestException('Completed bookings cannot be cancelled');
+    }
+    if (booking.pickedUpAt) {
+      throw new BadRequestException('Booking cannot be cancelled after pickup');
     }
 
+    // Time-based cancellation policy → refund amount
+    const cancelledAt = new Date();
+    const refundPercent = refundPercentFor(booking.trip.departureAt, cancelledAt);
+    const refundDue = Math.floor((booking.totalFare * refundPercent) / 100);
+
+    // Issue the refund BEFORE mutating booking state — if Razorpay rejects it we
+    // leave the booking untouched rather than cancelling without refunding.
+    let refundId: string | null = null;
+    let refundedAmount: number | null = null;
+    let refundedAt: Date | null = null;
+    if (booking.paymentStatus === PaymentStatus.PAID && booking.razorpayPaymentId && refundDue > 0) {
+      const refund = await this.razorpay.refundPayment(booking.razorpayPaymentId, refundDue, bookingId);
+      refundId = refund.refundId;
+      refundedAmount = refund.amountPaise;
+      refundedAt = cancelledAt;
+    }
+
+    const wasPaid = booking.paymentStatus === PaymentStatus.PAID;
     // Decrement seat count and set booking cancelled atomically
     await this.prisma.$transaction([
       this.prisma.seatBooking.update({
         where: { id: bookingId },
-        data: { status: BookingStatus.CANCELLED },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancelledAt,
+          cancellationReason: dto.reason ?? null,
+          ...(refundId
+            ? { paymentStatus: PaymentStatus.REFUNDED, refundId, refundAmount: refundedAmount, refundedAt }
+            : {}),
+        },
       }),
       this.prisma.scheduledTrip.update({
         where: { id: booking.tripId },
@@ -222,14 +339,32 @@ export class BookingService {
       }),
     ]);
 
-    await this.redis
-      .getClient()
-      .publish('pahadi:events', JSON.stringify({ event: 'booking.cancelled', bookingId }));
+    await this.redis.getClient().publish(
+      'pahadi:events',
+      JSON.stringify({
+        event: 'booking.cancelled',
+        bookingId,
+        tripId: booking.tripId,
+        driverId: booking.trip.driverId,
+        refundAmount: refundedAmount,
+        refundPercent,
+      }),
+    );
 
     // A cancellation can leave a trip with no active seats (the rest already served) — close it out.
     await this.maybeAutoCompleteTrip(booking.tripId);
 
-    return { bookingId, status: BookingStatus.CANCELLED };
+    return {
+      bookingId,
+      status: BookingStatus.CANCELLED,
+      refund: {
+        percent: refundPercent,
+        amount: refundedAmount ?? (wasPaid ? refundDue : 0),
+        refundId,
+        // PAID cash bookings have no online refund path; policy amount is informational
+        method: refundId ? 'razorpay' : 'none',
+      },
+    };
   }
 
   async collectCash(bookingId: string, driverId: string) {
@@ -255,6 +390,27 @@ export class BookingService {
       where: { id: bookingId },
       data: { paymentStatus: PaymentStatus.PAID, status: BookingStatus.COMPLETED },
     });
+
+    // The driver now physically holds the fare — debit the platform's commission
+    // from their wallet. Idempotent per booking.
+    const commission = commissionOf(booking.totalFare);
+    if (commission > 0) {
+      const existing = await this.prisma.walletLedger.findFirst({
+        where: { refType: 'PLATFORM_FEE_CASH', refId: bookingId },
+      });
+      if (!existing) {
+        await this.prisma.walletLedger.create({
+          data: {
+            accountType: AccountType.DRIVER,
+            accountId: driverId,
+            amount: commission,
+            entryType: WalletEntryType.DEBIT,
+            refType: 'PLATFORM_FEE_CASH',
+            refId: bookingId,
+          },
+        });
+      }
+    }
 
     await this.redis
       .getClient()
@@ -400,6 +556,52 @@ export class BookingService {
       }),
     );
     return otp;
+  }
+
+  /**
+   * Credit the driver's wallet for a completed trip's online (UPI) fares, net
+   * of platform commission. Cash fares are settled per-booking in collectCash.
+   * Idempotent per trip (guarded by a TRIP_EARNINGS ledger entry).
+   */
+  async settleTripEarnings(tripId: string) {
+    const existing = await this.prisma.walletLedger.findFirst({
+      where: { refType: 'TRIP_EARNINGS', refId: tripId },
+    });
+    if (existing) return { settled: false, reason: 'already_settled' };
+
+    const trip = await this.prisma.scheduledTrip.findUnique({
+      where: { id: tripId },
+      include: {
+        bookings: {
+          where: {
+            status: BookingStatus.COMPLETED,
+            paymentMethod: PaymentMethod.UPI,
+            paymentStatus: PaymentStatus.PAID,
+          },
+          select: { totalFare: true },
+        },
+      },
+    });
+    if (!trip) return { settled: false, reason: 'trip_not_found' };
+
+    const onlineTotal = trip.bookings.reduce((sum, b) => sum + b.totalFare, 0);
+    if (onlineTotal <= 0) return { settled: false, reason: 'no_online_fares' };
+
+    const driverNet = onlineTotal - commissionOf(onlineTotal);
+    await this.prisma.walletLedger.create({
+      data: {
+        accountType: AccountType.DRIVER,
+        accountId: trip.driverId,
+        amount: driverNet,
+        entryType: WalletEntryType.CREDIT,
+        refType: 'TRIP_EARNINGS',
+        refId: tripId,
+      },
+    });
+    this.logger.log(
+      `Settled trip ${tripId}: online ${onlineTotal} paise → driver ${trip.driverId} credited ${driverNet} paise (${PLATFORM_COMMISSION_PERCENT}% commission)`,
+    );
+    return { settled: true, onlineTotal, driverNet };
   }
 
   // Issue pickup OTPs for every still-boarding seat the moment a trip departs

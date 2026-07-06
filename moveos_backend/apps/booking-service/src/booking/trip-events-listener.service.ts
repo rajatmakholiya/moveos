@@ -38,6 +38,12 @@ export class TripEventsListenerService implements OnModuleInit, OnModuleDestroy 
           .issuePickupOtpsForTrip(tripId)
           .catch((err) => this.logger.warn(`OTP issuance failed for trip ${tripId}: ${(err as Error).message}`));
       }
+      if (evt.event === 'trip.completed' && evt.tripId) {
+        const tripId = evt.tripId;
+        void this.bookings
+          .settleTripEarnings(tripId)
+          .catch((err) => this.logger.warn(`Earnings settlement failed for trip ${tripId}: ${(err as Error).message}`));
+      }
     });
 
     this.logger.log(`Trip events listener active (${EVENTS_CHANNEL})`);

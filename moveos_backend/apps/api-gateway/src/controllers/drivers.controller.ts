@@ -57,6 +57,12 @@ export class DriversController {
     return this.driverClient.getWalletBalance(driverId);
   }
 
+  @Get('wallet/me/ledger')
+  walletLedger(@Req() req: any) {
+    const driverId = this.getDriverId(req);
+    return this.driverClient.getWalletLedger(driverId);
+  }
+
   @Get('drivers/me/vehicles')
   vehicles(@Req() req: any) {
     const driverId = this.getDriverId(req);
@@ -116,6 +122,35 @@ export class DriversController {
   submitKyc(@Req() req: any, @Body() body: SubmitDriverKycDto) {
     const driverId = this.getDriverId(req);
     return this.driverClient.submitKyc(driverId, body);
+  }
+
+  // ── Payouts ────────────────────────────────────────────────────────────────
+
+  @Post('drivers/me/payout-profile')
+  setupPayoutProfile(
+    @Req() req: any,
+    @Body() body: { accountHolderName: string; accountNumber: string; ifsc: string; vpa?: string },
+  ) {
+    const driverId = this.getDriverId(req);
+    return this.driverClient.setupPayoutProfile(driverId, body);
+  }
+
+  @Get('drivers/me/payout-profile')
+  getPayoutProfile(@Req() req: any) {
+    const driverId = this.getDriverId(req);
+    return this.driverClient.getPayoutProfile(driverId);
+  }
+
+  @Post('drivers/me/payouts')
+  requestPayout(@Req() req: any, @Body() body: { amountPaise?: number; mode?: string }) {
+    const driverId = this.getDriverId(req);
+    return this.driverClient.requestPayout(driverId, body);
+  }
+
+  @Get('drivers/me/payouts')
+  listPayouts(@Req() req: any) {
+    const driverId = this.getDriverId(req);
+    return this.driverClient.listPayouts(driverId);
   }
 
   private getDriverId(req: any): string {

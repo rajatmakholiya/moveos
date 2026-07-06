@@ -271,7 +271,7 @@ export default function DriverOfferingsPage() {
         </section>
       ) : null}
       {tab === 'PARCEL' ? <ActionPanel title={copy(lang, 'Parcel quotation requests', 'पार्सल कोटेशन रिक्वेस्ट')} body={copy(lang, 'Quote parcel carrying requests based on size, route, and timing.', 'साइज, रूट और समय के हिसाब से पार्सल कोट करें।')} action={copy(lang, 'View parcels', 'पार्सल देखें')} onClick={() => router.push('/driver/parcels')} /> : null}
-      {tab === 'CLUSTER' ? <LockedCluster lang={lang} /> : null}
+      {tab === 'CLUSTER' ? <ClusterOffers lang={lang} token={token ?? undefined} /> : null}
     </main>
   );
 }
@@ -302,19 +302,131 @@ function ActionPanel({ title, body, action, onClick }: { title: string; body: st
   );
 }
 
-function LockedCluster({ lang }: { lang: 'en' | 'hi' }) {
-  return (
-    <section className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-heading text-[var(--text-primary)]">{copy(lang, 'Clustered bookings', 'क्लस्टर्ड बुकिंग')}</h2>
-          <p className="mt-2 text-small text-[var(--text-secondary)]">{copy(lang, 'System-generated route clusters that combine nearby pickup demand.', 'नजदीकी पिकअप डिमांड को जोड़ने वाले सिस्टम जनरेटेड क्लस्टर।')}</p>
+type ClusterOffer = {
+  id: string;
+  status: string;
+  destination: string;
+  passengerCount: number;
+  estimatedFareMin: number;
+  radiusKm: number;
+  departureWindowStart: string;
+  departureWindowEnd: string;
+  distanceKm?: number;
+  expiresAt: string;
+};
+
+function ClusterOffers({ lang, token }: { lang: 'en' | 'hi'; token?: string }) {
+  const [clusters, setClusters] = useState<ClusterOffer[]>([]);
+  const [locked, setLocked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    async function load(position?: GeolocationPosition) {
+      try {
+        const query = position ? `?lat=${position.coords.latitude}&lng=${position.coords.longitude}` : '';
+        const res = await api.get<{ data?: { clusters?: ClusterOffer[] }; clusters?: ClusterOffer[] }>(`/driver/clusters${query}`, token);
+        if (!active) return;
+        const record = res as { data?: { clusters?: ClusterOffer[] }; clusters?: ClusterOffer[] };
+        setClusters(record.data?.clusters ?? record.clusters ?? []);
+        setLocked(false);
+      } catch (error) {
+        if (!active) return;
+        const status = (error as { status?: number })?.status;
+        const code = ((error as { details?: { code?: string } })?.details)?.code;
+        setLocked(status === 402 || code === 'FEATURE_LOCKED');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => void load(position),
+        () => void load(),
+        { timeout: 5000 },
+      );
+    } else {
+      void load();
+    }
+    return () => { active = false; };
+  }, [token]);
+
+  const acceptCluster = async (clusterId: string) => {
+    setAccepting(clusterId);
+    setMessage('');
+    try {
+      const res = await api.post<{ data?: { tripId?: string }; tripId?: string }>(`/driver/clusters/${clusterId}/accept`, {}, token);
+      const record = res as { data?: { tripId?: string }; tripId?: string };
+      const tripId = record.data?.tripId ?? record.tripId;
+      setClusters((current) => current.filter((cluster) => cluster.id !== clusterId));
+      setMessage(copy(lang, `Cluster accepted! Trip created${tripId ? ` (${tripId.slice(0, 10)}…)` : ''}. Passengers are being asked to confirm.`, 'क्लस्टर स्वीकार! ट्रिप बन गई। यात्रियों से पुष्टि मांगी जा रही है।'));
+    } catch (error) {
+      const detailMessage = ((error as { details?: { message?: string } })?.details)?.message;
+      setMessage(detailMessage ?? (error as { message?: string })?.message ?? copy(lang, 'Could not accept this cluster.', 'क्लस्टर स्वीकार नहीं हो सका।'));
+    } finally {
+      setAccepting(null);
+    }
+  };
+
+  if (loading) {
+    return <section className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-center text-small text-[var(--text-secondary)] shadow-card">{copy(lang, 'Finding clusters near you…', 'आपके पास क्लस्टर खोजे जा रहे हैं…')}</section>;
+  }
+
+  if (locked) {
+    return (
+      <section className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-heading text-[var(--text-primary)]">{copy(lang, 'Clustered bookings', 'क्लस्टर्ड बुकिंग')}</h2>
+            <p className="mt-2 text-small text-[var(--text-secondary)]">{copy(lang, 'Groups of nearby passengers heading the same way — one accept fills your vehicle.', 'एक ही दिशा में जाने वाले नजदीकी यात्रियों के समूह — एक स्वीकृति में गाड़ी भर जाती है।')}</p>
+          </div>
+          <Pill color="amber" label={copy(lang, 'GROWTH plan', 'GROWTH प्लान')} />
         </div>
-        <Pill color="amber" label={copy(lang, 'Locked', 'लॉक')} />
-      </div>
-      <Button className="mt-5" fullWidth disabled>
-        {copy(lang, 'Premium upgrade required', 'प्रीमियम अपग्रेड चाहिए')}
-      </Button>
+        <p className="mt-4 rounded-xl bg-[var(--surface-raised)] px-4 py-3 text-small text-[var(--text-secondary)]">
+          {copy(lang, 'Clusters are part of the GROWTH plan. Ask your organization to upgrade, or contact support for an individual Cluster Pack.', 'क्लस्टर GROWTH प्लान का हिस्सा हैं। अपने संगठन से अपग्रेड करने को कहें या व्यक्तिगत क्लस्टर पैक के लिए सपोर्ट से संपर्क करें।')}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-5 space-y-4">
+      {message && (
+        <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-small text-teal-800">{message}</div>
+      )}
+      {clusters.length === 0 ? (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-center shadow-card">
+          <p className="font-medium text-[var(--text-primary)]">{copy(lang, 'No clusters right now', 'अभी कोई क्लस्टर नहीं')}</p>
+          <p className="mt-1 text-small text-[var(--text-secondary)]">{copy(lang, 'Clusters form automatically when several passengers nearby want the same route. Check back soon.', 'जब कई नजदीकी यात्री एक ही रूट चाहते हैं तो क्लस्टर अपने-आप बनते हैं। जल्द दोबारा देखें।')}</p>
+        </div>
+      ) : (
+        clusters.map((cluster) => (
+          <article key={cluster.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-card">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium text-[var(--text-primary)]">
+                  {cluster.passengerCount} {copy(lang, 'passengers', 'यात्री')} → {cluster.destination}
+                </p>
+                <p className="mt-1 text-small text-[var(--text-secondary)]">
+                  {copy(lang, 'Pickup within', 'पिकअप दायरा')} {cluster.radiusKm} km
+                  {typeof cluster.distanceKm === 'number' ? ` · ${cluster.distanceKm} km ${copy(lang, 'from you', 'आपसे')}` : ''}
+                </p>
+                <p className="mt-1 text-small text-[var(--text-secondary)]">
+                  {formatDate(new Date(cluster.departureWindowStart), lang)} · {formatTime(new Date(cluster.departureWindowStart), lang)}–{formatTime(new Date(cluster.departureWindowEnd), lang)}
+                </p>
+              </div>
+              {cluster.estimatedFareMin > 0 && (
+                <Pill color="teal" label={`~${formatCurrency(cluster.estimatedFareMin)}/seat`} />
+              )}
+            </div>
+            <Button className="mt-4" fullWidth loading={accepting === cluster.id} onClick={() => void acceptCluster(cluster.id)}>
+              {copy(lang, 'Accept cluster', 'क्लस्टर स्वीकार करें')}
+            </Button>
+          </article>
+        ))
+      )}
     </section>
   );
 }

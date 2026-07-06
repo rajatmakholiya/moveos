@@ -4,13 +4,14 @@ import {
   ConflictException,
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Post,
   Query,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '@common/index';
+import { PrismaService, SMS_PROVIDER, SmsProvider } from '@common/index';
 import {
   ComplianceStatus,
   DriverStatus,
@@ -32,6 +33,7 @@ export class DriverInvitationsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
   // ─── GET /driver/invitations/:publicInviteRef?token=<rawToken> ─────────────
@@ -91,13 +93,24 @@ export class DriverInvitationsController {
       });
     });
 
+    const sent = await this.sms.sendOtp(invitation.phone, code, {
+      purpose: 'invite',
+      ttlSeconds: Math.floor(OTP_TTL_MS / 1000),
+    });
+    if (!sent.delivered && this.sms.deliversRealSms) {
+      throw new BadRequestException({
+        message: 'Could not send the OTP right now. Please try again shortly.',
+        error_code: 'otp_delivery_failed',
+      });
+    }
+
     return {
       status: 'ok',
       data: {
         otpExpiresIn: Math.floor(OTP_TTL_MS / 1000),
         phoneMasked: this.maskPhone(invitation.phone),
-        // surface dev code in non-production only
-        devOtpCode: process.env.NODE_ENV === 'production' ? undefined : code,
+        // surface dev code only when SMS is not actually being delivered
+        devOtpCode: this.sms.deliversRealSms ? undefined : code,
       },
     };
   }

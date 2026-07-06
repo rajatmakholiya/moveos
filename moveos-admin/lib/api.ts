@@ -905,6 +905,35 @@ export const featureFlagsApi = {
     api.get<UserFeatureFlags>(`/admin/feature-flags?userId=${encodeURIComponent(userId)}`),
 };
 
+// ─── Passenger clustering (DBSCAN cluster groups) ─────────────────────────────
+
+export interface ClusterGroupView {
+  id: string;
+  status: 'OPEN' | 'ASSIGNED' | 'DEPARTED' | 'EXPIRED' | 'CANCELLED';
+  centroidLat: number;
+  centroidLng: number;
+  radiusKm: number;
+  destination: string;
+  departureWindowStart: string;
+  departureWindowEnd: string;
+  passengerCount: number;
+  estimatedFareMin: number;
+  assignedDriverId: string | null;
+  assignedTripId: string | null;
+  expiresAt: string;
+  requests: Array<{ requestId: string; status: string }>;
+}
+
+export const clusterApi = {
+  // Super admin: every cluster group (latest 100)
+  listAll: () => api.get<{ clusters: ClusterGroupView[] }>('/admin/clusters'),
+  // Super admin: trigger an on-demand clustering sweep
+  run: () => api.post<{ created: number; openRequests: number }>('/admin/clusters/run', {}),
+  // Org admin: open clusters + those assigned to the org's fleet
+  listForOrg: (organizationId: string) =>
+    api.get<{ status: string; data: { clusters: ClusterGroupView[] } }>(`/organizations/${organizationId}/clusters`),
+};
+
 // ─── Driver Verification types and API (Step 4) ───────────────────────────────
 
 export type OrgDriverVerificationStatus = 'PENDING_COMPLIANCE' | 'ACTIVE' | 'SUSPENDED' | 'REMOVED';

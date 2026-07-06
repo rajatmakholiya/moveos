@@ -2,9 +2,10 @@ import 'reflect-metadata';
 import { strict as assert } from 'assert';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-// Contract: stub endpoints (challans, clusters) must return 501 with
+// Contract: stub endpoints (challans) must return 501 with
 // a machine-readable errorCode so the frontend can distinguish "not implemented" from
 // a real server error and show a "Coming soon" notice instead of an error banner.
+// (Clusters graduated from stub to a real feature — see clusters.controller.ts.)
 
 void (async () => {
   // 1. HttpStatus.NOT_IMPLEMENTED must be 501
@@ -13,7 +14,6 @@ void (async () => {
   // 2. Each stub produces a distinct errorCode that the frontend keys on
   const stubs: Array<{ errorCode: string; message: string }> = [
     { errorCode: 'challan_tracking_not_implemented', message: 'Challan tracking is not yet implemented' },
-    { errorCode: 'cluster_management_not_implemented', message: 'Cluster management is not yet implemented' },
   ];
 
   for (const stub of stubs) {

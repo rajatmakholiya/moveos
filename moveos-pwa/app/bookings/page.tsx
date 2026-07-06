@@ -220,6 +220,9 @@ export default function MyBookingsPage() {
 
       {refreshing ? <p className="mt-3 text-center text-small text-[var(--text-secondary)]">{copy(lang, 'Refreshing...', 'रीफ्रेश हो रहा है...')}</p> : null}
 
+      {/* Passenger: cluster invitations awaiting confirmation */}
+      {!isDriver ? <PassengerClusterInvites lang={lang} token={token ?? undefined} /> : null}
+
       {/* Passenger: transport requests banner (always visible for passengers) */}
       {!isDriver && requests.length > 0 ? (
         <section className="mt-5">
@@ -367,6 +370,79 @@ export default function MyBookingsPage() {
         {reviewRequest ? <BookingReviewSheet request={reviewRequest} lang={lang} /> : null}
       </BottomSheet>
     </main>
+  );
+}
+
+// ─── Passenger cluster invitations ───────────────────────────────────────────
+
+type PassengerCluster = {
+  id: string;
+  status: string;
+  destination: string;
+  passengerCount: number;
+  departureWindowStart: string;
+  myStatus: string;
+  assignedTripId?: string | null;
+};
+
+function PassengerClusterInvites({ lang, token }: { lang: 'en' | 'hi'; token?: string }) {
+  const [clusters, setClusters] = useState<PassengerCluster[]>([]);
+  const [acting, setActing] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const res = await api.get<{ data?: { clusters?: PassengerCluster[] }; clusters?: PassengerCluster[] }>('/passenger/clusters', token);
+        if (!active) return;
+        const record = res as { data?: { clusters?: PassengerCluster[] }; clusters?: PassengerCluster[] };
+        setClusters((record.data?.clusters ?? record.clusters ?? []).filter((cluster) => cluster.myStatus === 'PENDING'));
+      } catch {
+        // Cluster lookups are best-effort — the bookings page must never break over them.
+      }
+    })();
+    return () => { active = false; };
+  }, [token]);
+
+  const respond = async (clusterId: string, confirm: boolean) => {
+    setActing(clusterId);
+    try {
+      await api.post(`/passenger/clusters/${clusterId}/${confirm ? 'confirm' : 'opt-out'}`, {}, token);
+      setClusters((current) => current.filter((cluster) => cluster.id !== clusterId));
+    } catch {
+      // leave the card in place on failure
+    } finally {
+      setActing(null);
+    }
+  };
+
+  if (clusters.length === 0) return null;
+
+  return (
+    <section className="mt-5 space-y-3">
+      {clusters.map((cluster) => (
+        <div key={cluster.id} className="rounded-2xl border-2 border-[var(--brand)] bg-[var(--brand-light,#e6f4f0)] p-4 shadow-card">
+          <p className="font-medium text-[var(--text-primary)]">
+            {copy(lang, 'Shared ride match found!', 'साझा सवारी मिली!')}
+          </p>
+          <p className="mt-1 text-small text-[var(--text-secondary)]">
+            {copy(
+              lang,
+              `${cluster.passengerCount} passengers heading to ${cluster.destination} around ${formatTime(new Date(cluster.departureWindowStart), lang)} on ${formatDate(new Date(cluster.departureWindowStart), lang)}. Join to share the ride.`,
+              `${cluster.passengerCount} यात्री ${cluster.destination} जा रहे हैं (${formatDate(new Date(cluster.departureWindowStart), lang)})। साझा सवारी में शामिल हों।`,
+            )}
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Button size="sm" loading={acting === cluster.id} onClick={() => void respond(cluster.id, true)}>
+              {copy(lang, 'Join ride', 'शामिल हों')}
+            </Button>
+            <Button size="sm" variant="ghost" disabled={acting === cluster.id} onClick={() => void respond(cluster.id, false)}>
+              {copy(lang, 'No thanks', 'नहीं, धन्यवाद')}
+            </Button>
+          </div>
+        </div>
+      ))}
+    </section>
   );
 }
 

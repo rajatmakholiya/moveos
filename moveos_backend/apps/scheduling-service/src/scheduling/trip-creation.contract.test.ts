@@ -23,6 +23,8 @@ function makeService(prismaOverrides: Record<string, unknown>): SchedulingServic
   const prisma = {
     route: { findUnique: async () => ({ id: 'route_1', isActive: true }) },
     scheduledTrip: {
+      // No overlapping trips by default — the conflict check passes.
+      findMany: async () => [],
       create: async (args: any) => ({ id: 'trip_1', ...args.data, route: {}, vehicle: {} }),
     },
     driverVehicleAssignment: { findUnique: async () => null },

@@ -1,12 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '@common/index';
+import { PrismaService, SMS_PROVIDER, SmsProvider } from '@common/index';
 import {
   Driver,
   OnboardingConsent,
@@ -34,6 +35,7 @@ export class OnboardingService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
   async createSession(dto: CreateSessionDto) {
@@ -103,8 +105,8 @@ export class OnboardingService {
         data: {
           otpExpiresIn: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
           nextHint: 'verify_phone',
-          // surface dev code only for non-production
-          devOtpCode: process.env.NODE_ENV === 'production' ? undefined : code,
+          // surface dev code only when SMS is not actually being delivered
+          devOtpCode: this.sms.deliversRealSms ? undefined : code,
         },
       };
     }
@@ -397,6 +399,18 @@ export class OnboardingService {
         },
       });
     });
+
+    const sent = await this.sms.sendOtp(dto.phone, code, {
+      purpose: 'onboarding',
+      ttlSeconds: Math.floor(this.otpTtlMs / 1000),
+    });
+    if (!sent.delivered && this.sms.deliversRealSms) {
+      throw new BadRequestException({
+        message: 'Could not send the OTP right now. Please try again shortly.',
+        error_code: 'otp_delivery_failed',
+      });
+    }
+
     return { code, expiresAt };
   }
 

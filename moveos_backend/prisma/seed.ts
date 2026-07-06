@@ -880,6 +880,59 @@ async function main() {
       },
     });
   }
+
+  // ── Transport requests (SEAT / FULL_VEHICLE / PARCEL marketplace) ──────────
+  // Previously hardcoded inside dispatch-service; now persisted like real data.
+  const pithoragarhPlace = { id: 'geo-pth-bus', label: 'Pithoragarh Bus Stand', address: 'Roadways Station, Pithoragarh', city: 'Pithoragarh', lat: 29.5829, lng: 80.2182 };
+  const dehradunPlace = { id: 'geo-ddn-isbt', label: 'ISBT Dehradun', address: 'Transport Nagar, Dehradun', city: 'Dehradun', lat: 30.2908, lng: 78.0007 };
+  const transportRequests = [
+    {
+      id: 'req-seat-1001',
+      type: 'SEAT' as const,
+      routeId: 'pithoragarh-dehradun',
+      fromLabel: 'Pithoragarh',
+      toLabel: 'Dehradun',
+      passengerName: 'Kavita Joshi',
+      passengerPhone: '+91 98765 43210',
+      seats: 2,
+      note: 'Can join from Siltham or bus stand.',
+    },
+    {
+      id: 'req-full-2001',
+      type: 'FULL_VEHICLE' as const,
+      routeId: 'pithoragarh-dehradun',
+      fromLabel: 'Pithoragarh',
+      toLabel: 'Dehradun',
+      passengerName: 'Mehra family',
+      passengerPhone: '+91 99887 76655',
+      seats: 5,
+      budgetPaise: 1150000,
+    },
+    {
+      id: 'req-parcel-3001',
+      type: 'PARCEL' as const,
+      routeId: 'pithoragarh-haldwani',
+      fromLabel: 'Pithoragarh',
+      toLabel: 'Haldwani',
+      passengerName: 'Sharma Store',
+      passengerPhone: '+91 91234 56789',
+      seats: 0,
+      parcelDetails: '2 sealed medicine cartons',
+      budgetPaise: 90000,
+    },
+  ];
+  for (const request of transportRequests) {
+    await prisma.transportRequest.upsert({
+      where: { id: request.id },
+      update: {},
+      create: {
+        ...request,
+        pickupJson: pithoragarhPlace,
+        dropoffJson: request.toLabel === 'Dehradun' ? dehradunPlace : { ...dehradunPlace, label: `${request.toLabel} drop point`, city: request.toLabel },
+        requestedFor: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+  }
 }
 
 main()

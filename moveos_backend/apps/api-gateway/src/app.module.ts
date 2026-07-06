@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
-import { AppConfigModule, AuthModule, FileModule, HttpClientModule, PrismaModule, RedisModule } from '@common/index';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { AppConfigModule, AuthModule, FileModule, HttpClientModule, PrismaModule, ProvidersModule, RedisModule } from '@common/index';
+import { RateLimitMiddleware, RequestIdMiddleware } from './middleware/rate-limit.middleware';
 import { AuthController } from './auth/auth.controller';
 import { DriversController } from './controllers/drivers.controller';
 import { TelemetryController } from './controllers/telemetry.controller';
@@ -26,10 +27,13 @@ import { AdminTransportRequestsController, DriverBookingsController, DriverReque
 import { GeoController } from './controllers/geo.controller';
 import { OrganizationsController } from './controllers/organizations.controller';
 import { DriverInvitationsController } from './controllers/driver-invitations.controller';
+import { ClustersController } from './controllers/clusters.controller';
+import { DriverKycController } from './controllers/driver-kyc.controller';
 import { DriverOnboardingController } from './controllers/driver-onboarding.controller';
 import { DriverVerificationController } from './controllers/driver-verification.controller';
 import { VehicleDriverAssignmentsController } from './controllers/vehicle-driver-assignments.controller';
 import { FaresController } from './controllers/fares.controller';
+import { RatingsController } from './controllers/ratings.controller';
 import { FeatureFlagsController } from './controllers/feature-flags.controller';
 import { FilesController } from './controllers/files.controller';
 import { DriverEligibilityController } from './controllers/driver-eligibility.controller';
@@ -38,7 +42,7 @@ import { LiveTrackingController } from './controllers/live-tracking.controller';
 import { LiveTrackingService } from './services/live-tracking.service';
 
 @Module({
-  imports: [AppConfigModule, AuthModule, FileModule, HttpClientModule, PrismaModule, RedisModule],
+  imports: [AppConfigModule, AuthModule, FileModule, HttpClientModule, PrismaModule, ProvidersModule, RedisModule],
   controllers: [
     AuthController,
     DriversController,
@@ -60,10 +64,13 @@ import { LiveTrackingService } from './services/live-tracking.service';
     GeoController,
     OrganizationsController,
     DriverInvitationsController,
+    ClustersController,
+    DriverKycController,
     DriverOnboardingController,
     DriverVerificationController,
     VehicleDriverAssignmentsController,
     FaresController,
+    RatingsController,
     AdminRoutesController,
     FeatureFlagsController,
     FilesController,
@@ -85,4 +92,8 @@ import { LiveTrackingService } from './services/live-tracking.service';
     LiveTrackingService,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestIdMiddleware, RateLimitMiddleware).forRoutes('*');
+  }
+}

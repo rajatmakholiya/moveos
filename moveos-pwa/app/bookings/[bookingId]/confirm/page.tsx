@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Script from 'next/script';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../../../lib/api';
@@ -94,6 +95,7 @@ export default function BookingConfirmationPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const [payingNow, setPayingNow] = useState(false);
   const [sharingLocation, setSharingLocation] = useState(false);
   const [otpStatus, setOtpStatus] = useState<{ status: string; otp?: string } | null>(null);
   const [otpRefreshing, setOtpRefreshing] = useState(false);
@@ -154,6 +156,52 @@ export default function BookingConfirmationPage() {
     void refreshOtpStatus();
   }, [booking?.pickedUpAt, booking?.status, booking?.tripStatus, refreshOtpStatus]);
 
+  // Retry the Razorpay checkout for a UPI booking whose payment was dismissed
+  // or failed. Uses the order id stored on the booking at creation time.
+  const completePayment = async () => {
+    if (!booking || !booking.razorpayOrderId) return;
+    const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+    if (!razorpayKey) {
+      toast.error(copy(lang, 'Payment service is temporarily unavailable. Please try again later.', 'भुगतान सेवा अभी उपलब्ध नहीं है। कृपया बाद में प्रयास करें।'));
+      return;
+    }
+    const RazorpayCtor = (window as unknown as { Razorpay?: new (options: Record<string, unknown>) => { open: () => void } }).Razorpay;
+    if (!RazorpayCtor) {
+      toast.error(copy(lang, 'Payment page is still loading. Please try again in a moment.', 'भुगतान पेज लोड हो रहा है। कृपया थोड़ी देर में फिर प्रयास करें।'));
+      return;
+    }
+    setPayingNow(true);
+    const checkout = new RazorpayCtor({
+      key: razorpayKey,
+      amount: booking.totalPaise,
+      currency: 'INR',
+      order_id: booking.razorpayOrderId,
+      name: 'Pahadi Rides',
+      description: `${booking.from} to ${booking.to}`,
+      prefill: { name: booking.passengerName, contact: booking.phone },
+      handler: async (paymentResponse: { razorpay_payment_id?: string; razorpay_signature?: string }) => {
+        try {
+          await api.post(
+            `/bookings/${encodeURIComponent(booking.id)}/payment-confirm`,
+            {
+              razorpayPaymentId: paymentResponse.razorpay_payment_id,
+              razorpaySignature: paymentResponse.razorpay_signature,
+            },
+            token ?? undefined,
+          );
+          toast.success(copy(lang, 'Payment successful!', 'भुगतान सफल!'));
+        } catch {
+          toast.error(copy(lang, 'Payment confirmation failed. Contact support if amount was deducted.', 'भुगतान की पुष्टि नहीं हो सकी। राशि कटने पर सपोर्ट से संपर्क करें।'));
+        } finally {
+          setPayingNow(false);
+          void loadBooking(true);
+        }
+      },
+      modal: { ondismiss: () => setPayingNow(false) },
+    });
+    checkout.open();
+  };
+
   const shareTicket = async () => {
     if (!booking) return;
     const text = `${booking.code} · ${booking.from} to ${booking.to}`;
@@ -168,8 +216,30 @@ export default function BookingConfirmationPage() {
   const downloadInvoice = async () => {
     if (!booking) return;
     setDownloadingInvoice(true);
-    toast.error(copy(lang, 'Invoice download is not available from the gateway yet', 'गेटवे से इनवॉइस डाउनलोड अभी उपलब्ध नहीं है'));
-    setDownloadingInvoice(false);
+    try {
+      const { blob, fileName } = await api.getBlob(
+        `/bookings/${encodeURIComponent(booking.id)}/invoice`,
+        token ?? undefined,
+      );
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName ?? `invoice-${booking.id}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      toast.success(copy(lang, 'Invoice downloaded', 'इनवॉइस डाउनलोड हो गया'));
+    } catch (error) {
+      const message = (error as { message?: string })?.message;
+      toast.error(
+        message && message !== 'Something went wrong'
+          ? message
+          : copy(lang, 'Invoice is available after payment is completed', 'भुगतान पूरा होने के बाद इनवॉइस उपलब्ध होगा'),
+      );
+    } finally {
+      setDownloadingInvoice(false);
+    }
   };
 
   const stopLocationSharing = () => {
@@ -248,6 +318,7 @@ export default function BookingConfirmationPage() {
 
   return (
     <main className="min-h-screen bg-[var(--surface-raised)] px-5 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-5">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <button type="button" onClick={() => router.push('/bookings')} className="mb-5 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)]" aria-label={copy(lang, 'Back', 'वापस')}>
         ←
       </button>
@@ -309,6 +380,24 @@ export default function BookingConfirmationPage() {
 
           <TicketView booking={booking} lang={lang} />
 
+          {/* Post-trip rating — passengers only, once per booking */}
+          {user?.role !== 'DRIVER' && booking.status === 'COMPLETED' && (
+            <RateDriverCard bookingId={booking.id} driverName={booking.driverName} lang={lang} token={token ?? undefined} />
+          )}
+
+          {/* UPI payment pending (checkout dismissed or failed) — retry path */}
+          {booking.status === 'CONFIRMED' && booking.paymentMethod === 'UPI' && booking.paymentStatus === 'PENDING' && booking.razorpayOrderId && (
+            <div className="mt-5 rounded-2xl border-2 border-[var(--amber-400,#f59e0b)] bg-[var(--amber-50,#fffbeb)] p-4 text-center shadow-card">
+              <p className="font-medium text-[var(--stone-800)]">{copy(lang, 'Payment pending', 'भुगतान बाकी है')}</p>
+              <p className="mt-1 text-small text-[var(--text-secondary)]">
+                {copy(lang, 'Complete the payment to secure your seat.', 'अपनी सीट पक्की करने के लिए भुगतान पूरा करें।')}
+              </p>
+              <Button className="mt-3" fullWidth loading={payingNow} onClick={() => void completePayment()}>
+                {copy(lang, 'Complete payment', 'भुगतान पूरा करें')}
+              </Button>
+            </div>
+          )}
+
           <div className="mt-5 grid grid-cols-2 gap-3">
             <Button variant="secondary" onClick={() => void shareTicket()}>
               {copy(lang, 'Share ticket', 'टिकट शेयर करें')}
@@ -368,5 +457,91 @@ export default function BookingConfirmationPage() {
         </div>
       </BottomSheet>
     </main>
+  );
+}
+
+// ─── Post-trip driver rating ─────────────────────────────────────────────────
+
+function RateDriverCard({ bookingId, driverName, lang, token }: { bookingId: string; driverName: string; lang: 'en' | 'hi'; token?: string }) {
+  const [existing, setExisting] = useState<number | null>(null);
+  const [stars, setStars] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const res = await api.get<{ data?: { rating?: { stars: number } | null } }>(`/bookings/${encodeURIComponent(bookingId)}/rating`, token);
+        if (!active) return;
+        const rating = (res as { data?: { rating?: { stars: number } | null } }).data?.rating ?? null;
+        if (rating) setExisting(rating.stars);
+      } catch {
+        // rating lookup is best-effort
+      } finally {
+        if (active) setLoaded(true);
+      }
+    })();
+    return () => { active = false; };
+  }, [bookingId, token]);
+
+  const submit = async () => {
+    if (stars < 1) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/bookings/${encodeURIComponent(bookingId)}/rating`, { stars, comment: comment.trim() || undefined }, token);
+      setDone(true);
+      setExisting(stars);
+    } catch {
+      // errors leave the card editable for retry
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!loaded) return null;
+
+  if (existing !== null || done) {
+    return (
+      <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50 p-4 text-center shadow-card">
+        <p className="font-medium text-teal-700">
+          {copy(lang, 'Thanks for rating your trip!', 'यात्रा की रेटिंग के लिए धन्यवाद!')} {'★'.repeat(existing ?? stars)}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-card">
+      <p className="text-center font-medium text-[var(--text-primary)]">
+        {copy(lang, `How was your ride${driverName ? ` with ${driverName}` : ''}?`, `${driverName ? `${driverName} के साथ ` : ''}आपकी यात्रा कैसी रही?`)}
+      </p>
+      <div className="mt-3 flex justify-center gap-2">
+        {[1, 2, 3, 4, 5].map((value) => (
+          <button
+            key={value}
+            type="button"
+            aria-label={`${value} star`}
+            onClick={() => setStars(value)}
+            className={`text-[2rem] leading-none transition-transform active:scale-90 ${value <= stars ? 'text-amber-400' : 'text-stone-300'}`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <textarea
+        className="mt-3 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-small text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+        rows={2}
+        maxLength={500}
+        placeholder={copy(lang, 'Anything to add? (optional)', 'कुछ और कहना चाहें? (वैकल्पिक)')}
+        value={comment}
+        onChange={(event) => setComment(event.target.value)}
+      />
+      <Button className="mt-3" fullWidth disabled={stars < 1} loading={submitting} onClick={() => void submit()}>
+        {copy(lang, 'Submit rating', 'रेटिंग सबमिट करें')}
+      </Button>
+    </div>
   );
 }

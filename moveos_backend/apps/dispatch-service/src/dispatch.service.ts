@@ -1,6 +1,13 @@
 import { ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { RedisService } from '@common/index';
+import { PrismaService, RedisService } from '@common/index';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  Prisma,
+  TransportRequest,
+  TransportRequestStatus,
+  TransportRequestType,
+  PaymentStatus,
+} from '@prisma/client';
 import { CreateTransportRequestDto } from './dto/dispatch.dto';
 
 // Driver can mark a full-vehicle journey complete from 30 min before departure onwards.
@@ -15,75 +22,23 @@ const ROUTE_DURATION_HOURS: Record<string, number> = {
 };
 const DEFAULT_TRIP_HOURS = 16;
 
-type TransportRequest = Required<Pick<CreateTransportRequestDto, 'type'>> & {
-  id: string;
-  passengerId?: string;
-  status: 'REQUESTED' | 'ACCEPTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
-  paymentStatus: 'PENDING' | 'PAID';
-  routeId: string;
-  from: string;
-  to: string;
-  pickup: Record<string, unknown>;
-  dropoff: Record<string, unknown>;
-  requestedFor: string;
-  passengerName: string;
-  passengerPhone: string;
-  seats: number;
-  note?: string;
-  parcelDetails?: string;
-  budgetPaise?: number;
-  agreedAmountPaise?: number;
-  acceptedByDriverId?: string;
-  rejectedByDriverIds?: string[];
-  bookingId?: string;
-  createdAt: string;
-  completedAt?: string;
-};
-
 const pithoragarh = { id: 'geo-pth-bus', label: 'Pithoragarh Bus Stand', address: 'Roadways Station, Pithoragarh', city: 'Pithoragarh', lat: 29.5829, lng: 80.2182 };
 const dehradun = { id: 'geo-ddn-isbt', label: 'ISBT Dehradun', address: 'Transport Nagar, Dehradun', city: 'Dehradun', lat: 30.2908, lng: 78.0007 };
 
+/**
+ * Transport request marketplace (SEAT / FULL_VEHICLE / PARCEL), persisted in
+ * PostgreSQL. Response shapes intentionally match the original in-memory
+ * implementation so the gateway/PWA/admin need no changes.
+ *
+ * Ride-offer dispatch (acceptRide/rejectRide) belongs to the parked on-demand
+ * flow — kept as-is (Redis-atomic) but not part of the scheduled-ride product.
+ */
 @Injectable()
 export class DispatchService {
   private readonly logger = new Logger(DispatchService.name);
-  private readonly transportRequests: TransportRequest[] = [
-    this.buildRequest({
-      type: 'SEAT',
-      routeId: 'pithoragarh-dehradun',
-      from: 'Pithoragarh',
-      to: 'Dehradun',
-      passengerName: 'Kavita Joshi',
-      passengerPhone: '+91 98765 43210',
-      passengerId: 'pass-seed-001',
-      seats: 2,
-      note: 'Can join from Siltham or bus stand.',
-    }, 'req-seat-1001'),
-    this.buildRequest({
-      type: 'FULL_VEHICLE',
-      routeId: 'pithoragarh-dehradun',
-      from: 'Pithoragarh',
-      to: 'Dehradun',
-      passengerName: 'Mehra family',
-      passengerPhone: '+91 99887 76655',
-      passengerId: 'pass-seed-002',
-      seats: 5,
-      budgetPaise: 1150000,
-    }, 'req-full-2001'),
-    this.buildRequest({
-      type: 'PARCEL',
-      routeId: 'pithoragarh-haldwani',
-      from: 'Pithoragarh',
-      to: 'Haldwani',
-      passengerName: 'Sharma Store',
-      passengerPhone: '+91 91234 56789',
-      passengerId: 'pass-seed-001',
-      seats: 0,
-      parcelDetails: '2 sealed medicine cartons',
-      budgetPaise: 90000,
-    }, 'req-parcel-3001'),
-  ];
 
   constructor(
+    private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     @Inject('INTERNAL_EVENT_BUS') private readonly events: EventEmitter2,
   ) {}
@@ -104,41 +59,80 @@ export class DispatchService {
     return payload;
   }
 
-  listRequests(query: { type?: string; status?: string; driverId?: string; passengerId?: string; lat?: number; lng?: number }) {
-    const requests = this.transportRequests
-      .filter((request) => (query.type ? request.type === query.type : true))
-      .filter((request) => (query.status ? request.status === query.status : request.status === 'REQUESTED'))
-      .filter((request) => (query.driverId ? request.acceptedByDriverId === query.driverId : true))
-      .filter((request) => (query.passengerId ? request.passengerId === query.passengerId : true))
-      .filter((request) => (query.driverId && request.status === 'REQUESTED' ? !request.rejectedByDriverIds?.includes(query.driverId) : true))
-      .map((request) => ({
-        ...request,
-        ...(query.type === 'SEAT' ? { distanceKm: this.distanceKm(query.lat, query.lng, request.pickup) } : {}),
+  async listRequests(query: { type?: string; status?: string; driverId?: string; passengerId?: string; lat?: number; lng?: number }) {
+    const where: Prisma.TransportRequestWhereInput = {
+      ...(query.type ? { type: query.type as TransportRequestType } : {}),
+      status: (query.status as TransportRequestStatus) ?? TransportRequestStatus.REQUESTED,
+      ...(query.driverId && query.status ? { acceptedByDriverId: query.driverId } : {}),
+      ...(query.passengerId ? { passengerId: query.passengerId } : {}),
+    };
+
+    const rows = await this.prisma.transportRequest.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+
+    const requests = rows
+      // A driver browsing open requests shouldn't see ones they already declined
+      .filter((row) => {
+        if (!query.driverId || row.status !== TransportRequestStatus.REQUESTED) return true;
+        return !this.rejectedBy(row).includes(query.driverId);
+      })
+      .map((row) => ({
+        ...this.toView(row),
+        ...(query.type === 'SEAT' ? { distanceKm: this.distanceKm(query.lat, query.lng, (row.pickupJson as Record<string, unknown>) ?? {}) } : {}),
       }))
       .sort((a: any, b: any) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
 
     return { requests };
   }
 
-  createRequest(dto: CreateTransportRequestDto) {
-    const request = this.buildRequest(dto, `req-${Date.now()}`);
-    this.transportRequests.unshift(request);
+  async createRequest(dto: CreateTransportRequestDto) {
+    const row = await this.prisma.transportRequest.create({
+      data: {
+        type: (dto.type as TransportRequestType) ?? TransportRequestType.SEAT,
+        status: TransportRequestStatus.REQUESTED,
+        paymentStatus: PaymentStatus.PENDING,
+        routeId: dto.routeId ?? 'pithoragarh-dehradun',
+        fromLabel: dto.from ?? 'Pithoragarh',
+        toLabel: dto.to ?? 'Dehradun',
+        pickupJson: (dto.pickup ?? pithoragarh) as Prisma.InputJsonObject,
+        dropoffJson: (dto.dropoff ?? dehradun) as Prisma.InputJsonObject,
+        requestedFor: new Date(dto.requestedFor ?? Date.now() + 24 * 60 * 60 * 1000),
+        passengerId: dto.passengerId ?? null,
+        passengerName: dto.passengerName ?? 'Passenger One',
+        passengerPhone: dto.passengerPhone ?? '+91 98765 43210',
+        seats: dto.seats ?? 1,
+        note: dto.note,
+        parcelDetails: dto.parcelDetails,
+        budgetPaise: dto.budgetPaise,
+      },
+    });
+    const request = this.toView(row);
     this.events.emit('transport.request.created', request);
-    return { request, requestId: request.id };
+    await this.publishEvent('transport.request.created', { requestId: row.id, type: row.type });
+    return { request, requestId: row.id };
   }
 
-  acceptRequest(requestId: string, driverId: string) {
-    const request = this.transportRequests.find((item) => item.id === requestId);
-    if (!request) return null;
-    if (request.status !== 'REQUESTED' && request.acceptedByDriverId !== driverId) return null;
+  async acceptRequest(requestId: string, driverId: string) {
+    const row = await this.prisma.transportRequest.findUnique({ where: { id: requestId } });
+    if (!row) return null;
+    if (row.status !== TransportRequestStatus.REQUESTED && row.acceptedByDriverId !== driverId) return null;
 
     // Overlap check: reject if this driver already has an accepted request with an overlapping window
-    const newStart = new Date(request.requestedFor).getTime();
-    const newEnd = newStart + (ROUTE_DURATION_HOURS[request.routeId] ?? DEFAULT_TRIP_HOURS) * 3_600_000;
-    const conflict = this.transportRequests.find((existing) => {
-      if (existing.id === requestId || existing.acceptedByDriverId !== driverId || existing.status !== 'ACCEPTED') return false;
-      const exStart = new Date(existing.requestedFor).getTime();
-      const exEnd = exStart + (ROUTE_DURATION_HOURS[existing.routeId] ?? DEFAULT_TRIP_HOURS) * 3_600_000;
+    const newStart = row.requestedFor.getTime();
+    const newEnd = newStart + (ROUTE_DURATION_HOURS[row.routeId ?? ''] ?? DEFAULT_TRIP_HOURS) * 3_600_000;
+    const acceptedByDriver = await this.prisma.transportRequest.findMany({
+      where: {
+        id: { not: requestId },
+        acceptedByDriverId: driverId,
+        status: TransportRequestStatus.ACCEPTED,
+      },
+    });
+    const conflict = acceptedByDriver.find((existing) => {
+      const exStart = existing.requestedFor.getTime();
+      const exEnd = exStart + (ROUTE_DURATION_HOURS[existing.routeId ?? ''] ?? DEFAULT_TRIP_HOURS) * 3_600_000;
       return exStart < newEnd && exEnd > newStart;
     });
     if (conflict) {
@@ -149,76 +143,125 @@ export class DispatchService {
       });
     }
 
-    request.status = 'ACCEPTED';
-    request.acceptedByDriverId = driverId;
-    request.bookingId = `booking-${requestId}`;
+    // Atomic claim — the WHERE guard means only one driver can win a REQUESTED row.
+    const claimed = await this.prisma.transportRequest.updateMany({
+      where: { id: requestId, status: TransportRequestStatus.REQUESTED },
+      data: {
+        status: TransportRequestStatus.ACCEPTED,
+        acceptedByDriverId: driverId,
+        bookingId: `booking-${requestId}`,
+      },
+    });
+    if (claimed.count === 0 && row.acceptedByDriverId !== driverId) {
+      throw new ConflictException({
+        message: 'This request was just accepted by another driver',
+        error_code: 'REQUEST_ALREADY_ACCEPTED',
+      });
+    }
+
+    const updated = await this.prisma.transportRequest.findUniqueOrThrow({ where: { id: requestId } });
     this.events.emit('transport.request.accepted', { requestId, driverId });
-    return { request, bookingId: request.bookingId };
+    await this.publishEvent('transport.request.accepted', { requestId, driverId, passengerId: updated.passengerId });
+    return { request: this.toView(updated), bookingId: updated.bookingId };
   }
 
-  rejectRequest(requestId: string, driverId: string) {
-    const request = this.transportRequests.find((item) => item.id === requestId);
-    if (!request) return null;
-    request.rejectedByDriverIds = Array.from(new Set([...(request.rejectedByDriverIds ?? []), driverId]));
+  async rejectRequest(requestId: string, driverId: string) {
+    const row = await this.prisma.transportRequest.findUnique({ where: { id: requestId } });
+    if (!row) return null;
+    const rejectedBy = Array.from(new Set([...this.rejectedBy(row), driverId]));
+    const updated = await this.prisma.transportRequest.update({
+      where: { id: requestId },
+      data: { rejectedByJson: rejectedBy as Prisma.InputJsonValue },
+    });
     this.events.emit('transport.request.rejected', { requestId, driverId });
-    return { request };
+    return { request: this.toView(updated) };
   }
 
-  completeRequest(requestId: string, driverId: string, agreedAmountPaise?: number) {
-    const request = this.transportRequests.find((item) => item.id === requestId);
-    if (!request) throw new NotFoundException('Request not found');
-    if (request.acceptedByDriverId !== driverId) throw new ForbiddenException('Not your request');
-    if (request.status !== 'ACCEPTED') throw new ConflictException(`Cannot complete a request in status ${request.status}`);
+  async completeRequest(requestId: string, driverId: string, agreedAmountPaise?: number) {
+    const row = await this.prisma.transportRequest.findUnique({ where: { id: requestId } });
+    if (!row) throw new NotFoundException('Request not found');
+    if (row.acceptedByDriverId !== driverId) throw new ForbiddenException('Not your request');
+    if (row.status !== TransportRequestStatus.ACCEPTED) {
+      throw new ConflictException(`Cannot complete a request in status ${row.status}`);
+    }
 
-    const departureAt = new Date(request.requestedFor).getTime();
+    const departureAt = row.requestedFor.getTime();
     if (Date.now() < departureAt - COMPLETE_GATE_MS) {
       throw new ConflictException('Journey can only be completed from 30 minutes before the scheduled departure time');
     }
 
-    request.status = 'COMPLETED';
-    request.paymentStatus = 'PAID';
-    request.completedAt = new Date().toISOString();
-    if (agreedAmountPaise !== undefined) {
-      request.agreedAmountPaise = agreedAmountPaise;
-    }
+    const updated = await this.prisma.transportRequest.update({
+      where: { id: requestId },
+      data: {
+        status: TransportRequestStatus.COMPLETED,
+        paymentStatus: PaymentStatus.PAID,
+        completedAt: new Date(),
+        ...(agreedAmountPaise !== undefined ? { agreedAmountPaise } : {}),
+      },
+    });
     this.events.emit('transport.request.completed', { requestId, driverId });
-    return { request };
+    await this.publishEvent('transport.request.completed', { requestId, driverId, passengerId: updated.passengerId });
+    return { request: this.toView(updated) };
   }
 
-  cancelRequest(requestId: string, driverId: string) {
-    const request = this.transportRequests.find((item) => item.id === requestId);
-    if (!request) throw new NotFoundException('Request not found');
-    if (request.acceptedByDriverId !== driverId) throw new ForbiddenException('Not your request');
-    if (request.status === 'COMPLETED' || request.status === 'CANCELLED') {
-      throw new ConflictException(`Cannot cancel a request in status ${request.status}`);
+  async cancelRequest(requestId: string, driverId: string) {
+    const row = await this.prisma.transportRequest.findUnique({ where: { id: requestId } });
+    if (!row) throw new NotFoundException('Request not found');
+    if (row.acceptedByDriverId !== driverId) throw new ForbiddenException('Not your request');
+    if (row.status === TransportRequestStatus.COMPLETED || row.status === TransportRequestStatus.CANCELLED) {
+      throw new ConflictException(`Cannot cancel a request in status ${row.status}`);
     }
 
-    request.status = 'CANCELLED';
+    const updated = await this.prisma.transportRequest.update({
+      where: { id: requestId },
+      data: { status: TransportRequestStatus.CANCELLED, cancelledAt: new Date() },
+    });
     this.events.emit('transport.request.cancelled', { requestId, driverId });
-    return { request };
+    await this.publishEvent('transport.request.cancelled', { requestId, driverId, passengerId: updated.passengerId });
+    return { request: this.toView(updated) };
   }
 
-  private buildRequest(dto: CreateTransportRequestDto, id: string): TransportRequest {
+  // ── Mapping helpers ─────────────────────────────────────────────────────────
+
+  /** DB row → legacy response shape (what gateway/PWA/admin already consume). */
+  private toView(row: TransportRequest) {
     return {
-      id,
-      passengerId: dto.passengerId,
-      type: dto.type ?? 'SEAT',
-      status: 'REQUESTED',
-      paymentStatus: 'PENDING',
-      routeId: dto.routeId ?? 'pithoragarh-dehradun',
-      from: dto.from ?? 'Pithoragarh',
-      to: dto.to ?? 'Dehradun',
-      pickup: dto.pickup ?? pithoragarh,
-      dropoff: dto.dropoff ?? dehradun,
-      requestedFor: dto.requestedFor ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      passengerName: dto.passengerName ?? 'Passenger One',
-      passengerPhone: dto.passengerPhone ?? '+91 98765 43210',
-      seats: dto.seats ?? 1,
-      note: dto.note,
-      parcelDetails: dto.parcelDetails,
-      budgetPaise: dto.budgetPaise,
-      createdAt: new Date().toISOString(),
+      id: row.id,
+      passengerId: row.passengerId ?? undefined,
+      type: row.type,
+      status: row.status,
+      paymentStatus: row.paymentStatus === PaymentStatus.PAID ? 'PAID' : 'PENDING',
+      routeId: row.routeId ?? '',
+      from: row.fromLabel,
+      to: row.toLabel,
+      pickup: (row.pickupJson as Record<string, unknown>) ?? {},
+      dropoff: (row.dropoffJson as Record<string, unknown>) ?? {},
+      requestedFor: row.requestedFor.toISOString(),
+      passengerName: row.passengerName,
+      passengerPhone: row.passengerPhone,
+      seats: row.seats,
+      note: row.note ?? undefined,
+      parcelDetails: row.parcelDetails ?? undefined,
+      budgetPaise: row.budgetPaise ?? undefined,
+      agreedAmountPaise: row.agreedAmountPaise ?? undefined,
+      acceptedByDriverId: row.acceptedByDriverId ?? undefined,
+      rejectedByDriverIds: this.rejectedBy(row),
+      bookingId: row.bookingId ?? undefined,
+      createdAt: row.createdAt.toISOString(),
+      completedAt: row.completedAt?.toISOString(),
     };
+  }
+
+  private rejectedBy(row: TransportRequest): string[] {
+    return Array.isArray(row.rejectedByJson) ? (row.rejectedByJson as string[]) : [];
+  }
+
+  private async publishEvent(event: string, payload: Record<string, unknown>) {
+    try {
+      await this.redis.getClient().publish('pahadi:events', JSON.stringify({ event, ...payload }));
+    } catch (err) {
+      this.logger.warn(`Failed to publish ${event}: ${(err as Error).message}`);
+    }
   }
 
   private distanceKm(lat: number | undefined, lng: number | undefined, place: Record<string, unknown>) {

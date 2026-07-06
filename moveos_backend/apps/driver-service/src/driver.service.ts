@@ -303,24 +303,80 @@ export class DriverService {
 
   async getEarningsSummary(driverId: string) {
     await this.ensureDriverExists(driverId);
-    const credit = await this.prisma.walletLedger.aggregate({
-      where: { accountId: driverId, accountType: AccountType.DRIVER, entryType: WalletEntryType.CREDIT },
-      _sum: { amount: true },
-    });
-    const debit = await this.prisma.walletLedger.aggregate({
-      where: { accountId: driverId, accountType: AccountType.DRIVER, entryType: WalletEntryType.DEBIT },
-      _sum: { amount: true },
-    });
-    const totalEarnings = Number(credit._sum.amount ?? 0) - Number(debit._sum.amount ?? 0);
+
+    // Window starts: IST day boundary, rolling 7 and 30 days
+    const now = new Date();
+    const istOffsetMs = 5.5 * 3_600_000;
+    const istNow = new Date(now.getTime() + istOffsetMs);
+    const istMidnightUtc = new Date(
+      Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate()) - istOffsetMs,
+    );
+    const weekStart = new Date(now.getTime() - 7 * 86_400_000);
+    const monthStart = new Date(now.getTime() - 30 * 86_400_000);
+
+    const netSince = async (since?: Date) => {
+      const base = {
+        accountId: driverId,
+        accountType: AccountType.DRIVER,
+        ...(since ? { createdAt: { gte: since } } : {}),
+      };
+      const [credit, debit] = await Promise.all([
+        this.prisma.walletLedger.aggregate({ where: { ...base, entryType: WalletEntryType.CREDIT }, _sum: { amount: true } }),
+        this.prisma.walletLedger.aggregate({ where: { ...base, entryType: WalletEntryType.DEBIT }, _sum: { amount: true } }),
+      ]);
+      return Number(credit._sum.amount ?? 0) - Number(debit._sum.amount ?? 0);
+    };
+
+    const [todayPaise, weekPaise, monthPaise, totalPaise, platformFee, pendingCash] = await Promise.all([
+      netSince(istMidnightUtc),
+      netSince(weekStart),
+      netSince(monthStart),
+      netSince(),
+      this.prisma.walletLedger.aggregate({
+        where: { accountId: driverId, accountType: AccountType.DRIVER, refType: 'PLATFORM_FEE_CASH' },
+        _sum: { amount: true },
+      }),
+      // Cash fares on this driver's trips still waiting to be collected
+      this.prisma.seatBooking.aggregate({
+        where: {
+          trip: { driverId },
+          paymentMethod: 'CASH',
+          paymentStatus: 'PENDING',
+          status: 'CONFIRMED',
+        },
+        _sum: { totalFare: true },
+      }),
+    ]);
+
     return {
       earnings: {
         driverId,
-        todayPaise: totalEarnings,
-        weekPaise: totalEarnings,
-        monthPaise: totalEarnings,
-        pendingCashPaise: 0,
-        platformFeePaise: 0,
+        todayPaise,
+        weekPaise,
+        monthPaise,
+        totalPaise,
+        pendingCashPaise: Number(pendingCash._sum.totalFare ?? 0),
+        platformFeePaise: Number(platformFee._sum.amount ?? 0),
       },
+    };
+  }
+
+  async getWalletLedger(driverId: string) {
+    await this.ensureDriverExists(driverId);
+    const entries = await this.prisma.walletLedger.findMany({
+      where: { accountId: driverId, accountType: AccountType.DRIVER },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return {
+      entries: entries.map((entry) => ({
+        id: entry.id,
+        amountPaise: Number(entry.amount),
+        entryType: entry.entryType,
+        refType: entry.refType,
+        refId: entry.refId,
+        createdAt: entry.createdAt,
+      })),
     };
   }
 
@@ -434,12 +490,53 @@ export class DriverService {
       throw new ForbiddenException({
         message: 'Driver KYC or compliance is not approved',
         error_code: 'driver_compliance_required',
+        compliance: {
+          canOperate: false,
+          blockedReasons: [{ code: 'DRIVER_KYC_NOT_APPROVED', message: 'Complete and pass KYC verification before going online', owner: 'DRIVER' }],
+          nextActions: [{ code: 'COMPLETE_KYC', label: 'Complete your KYC verification' }],
+        },
       });
     }
     if (vehicle.status !== VehicleStatus.ACTIVE || vehicle.complianceStatus !== ComplianceStatus.CLEAR) {
       throw new ForbiddenException({
         message: 'Vehicle KYC or compliance is not approved',
         error_code: 'vehicle_compliance_required',
+        compliance: {
+          canOperate: false,
+          blockedReasons: [{ code: 'VEHICLE_NOT_APPROVED', message: 'Vehicle documents are not approved', owner: 'DRIVER' }],
+          nextActions: [{ code: 'UPLOAD_VEHICLE_DOCUMENTS', label: 'Upload and get vehicle documents approved' }],
+        },
+      });
+    }
+    this.assertVehicleDocumentsNotExpired(vehicle);
+  }
+
+  /**
+   * Hard expiry gate — a vehicle whose insurance/fitness/permit/pollution has
+   * lapsed cannot operate even if its documents were once APPROVED. Each
+   * failure names exactly what expired and how to fix it.
+   */
+  private assertVehicleDocumentsNotExpired(vehicle: any) {
+    const now = Date.now();
+    const expiries: Array<{ field: string; code: string; label: string; docLabel: string }> = [
+      { field: 'insuranceValidTill', code: 'INSURANCE_EXPIRED', label: 'Renew and upload vehicle insurance', docLabel: 'Vehicle insurance' },
+      { field: 'fitnessValidTill', code: 'FITNESS_EXPIRED', label: 'Renew and upload the fitness certificate', docLabel: 'Fitness certificate' },
+      { field: 'permitValidTill', code: 'PERMIT_EXPIRED', label: 'Renew and upload the commercial permit', docLabel: 'Commercial permit' },
+      { field: 'pollutionValidTill', code: 'POLLUTION_EXPIRED', label: 'Renew and upload the pollution certificate', docLabel: 'Pollution certificate' },
+    ];
+    const expired = expiries.filter(({ field }) => {
+      const value = vehicle[field];
+      return value instanceof Date && value.getTime() < now;
+    });
+    if (expired.length > 0) {
+      throw new ForbiddenException({
+        message: `${expired.map((e) => e.docLabel).join(', ')} expired — renew before going online`,
+        error_code: 'vehicle_document_expired',
+        compliance: {
+          canOperate: false,
+          blockedReasons: expired.map((e) => ({ code: e.code, message: `${e.docLabel} has expired`, owner: 'DRIVER' })),
+          nextActions: expired.map((e) => ({ code: `RENEW_${e.code}`, label: e.label })),
+        },
       });
     }
   }

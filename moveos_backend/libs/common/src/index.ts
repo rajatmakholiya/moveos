@@ -15,3 +15,4 @@ export * from './events/internal-event-bus';
 export * from './files/file.module';
 export * from './files/file.service';
 export * from './location';
+export * from './providers';
