@@ -1,10 +1,17 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import Razorpay = require('razorpay');
 
+export interface RefundResult {
+  refundId: string;
+  amountPaise: number;
+  status: string;
+}
+
 @Injectable()
 export class RazorpayService {
+  private readonly logger = new Logger(RazorpayService.name);
   private readonly client: Razorpay;
   private readonly keySecret: string;
 
@@ -34,8 +41,31 @@ export class RazorpayService {
     }
   }
 
-  logRefundIntent(paymentId: string, amountPaise: number, bookingId: string) {
-    // Stub: log refund intent — wire to razorpay.payments.refund() when ready
-    console.log(`[REFUND INTENT] bookingId=${bookingId} paymentId=${paymentId} amount=${amountPaise} paise`);
+  /**
+   * Issue a (full or partial) refund against a captured payment.
+   * `receipt` doubles as Razorpay's idempotency-friendly reference.
+   */
+  async refundPayment(paymentId: string, amountPaise: number, bookingId: string): Promise<RefundResult> {
+    if (!paymentId) {
+      throw new BadRequestException('Cannot refund: no payment id recorded on this booking');
+    }
+    try {
+      const refund = await this.client.payments.refund(paymentId, {
+        amount: amountPaise,
+        speed: 'normal',
+        notes: { bookingId },
+        receipt: `refund_${bookingId}`,
+      });
+      this.logger.log(`Refunded ${amountPaise} paise for booking ${bookingId} (refund ${refund.id})`);
+      return { refundId: refund.id, amountPaise: Number(refund.amount), status: String(refund.status) };
+    } catch (err) {
+      const description =
+        (err as { error?: { description?: string } })?.error?.description ?? (err as Error).message ?? 'refund_failed';
+      this.logger.error(`Refund failed for booking ${bookingId} (payment ${paymentId}): ${description}`);
+      throw new BadRequestException({
+        message: `Refund could not be processed: ${description}`,
+        error_code: 'refund_failed',
+      });
+    }
   }
 }

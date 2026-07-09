@@ -1,7 +1,11 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class DeviceTokenDto {
   @IsString()
   @IsNotEmpty()
   token!: string;
+
+  @IsOptional()
+  @IsIn(['android', 'ios', 'web'])
+  platform?: string;
 }

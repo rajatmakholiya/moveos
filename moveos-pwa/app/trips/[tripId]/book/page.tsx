@@ -377,6 +377,9 @@ export default function BookingFormPage() {
     }
 
     if (!window.Razorpay) {
+      // Checkout script didn't load (offline/hill network) — the booking exists;
+      // the confirmation page shows a "Complete payment" retry button.
+      toast.error(copy(lang, 'Payment page could not load. You can complete payment from your booking.', 'भुगतान पेज लोड नहीं हुआ। आप अपनी बुकिंग से भुगतान पूरा कर सकते हैं।'));
       router.replace(`/bookings/${bookingId}/confirm`);
       return;
     }

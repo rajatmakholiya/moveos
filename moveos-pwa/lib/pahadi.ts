@@ -60,6 +60,8 @@ export type Booking = {
   pickupPoint: string;
   arrivedAtPickupAt: string | null;
   pickedUpAt: string | null;
+  /** Razorpay order id — present on UPI bookings, enables payment retry. */
+  razorpayOrderId: string | null;
 };
 
 function unwrapData(payload: unknown) {
@@ -218,6 +220,7 @@ export function parseBooking(payload: unknown): Booking | null {
     pickupPoint: readString(tripRecord ?? source, ['pickupPoint', 'departurePoint', 'pickup']),
     arrivedAtPickupAt: readString(source, ['arrivedAtPickupAt']) || null,
     pickedUpAt: readString(source, ['pickedUpAt']) || null,
+    razorpayOrderId: readString(source, ['razorpayOrderId']) || null,
   };
 }
 

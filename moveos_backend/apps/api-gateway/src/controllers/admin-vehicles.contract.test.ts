@@ -97,6 +97,9 @@ async function main() {
     /Driver must belong to this organization and be active/,
   );
 
+  const approvedRequiredDocuments = ['RC', 'INSURANCE', 'POLLUTION_CERTIFICATE', 'FITNESS_CERTIFICATE', 'PERMIT'].map(
+    (type) => ({ type, status: DocumentStatus.APPROVED, url: `https://example.test/${type.toLowerCase()}.pdf` }),
+  );
   const reviewWrites: any[] = [];
   const reviewed = await controller({
     kycRecord: {
@@ -104,6 +107,7 @@ async function main() {
       update: async ({ data }: any) => ({ id: 'kyc_1', ...data }),
     },
     vehicle: {
+      findUnique: async () => ({ id: 'veh_1', documents: approvedRequiredDocuments }),
       update: async ({ data }: any) => {
         reviewWrites.push(data);
         return { id: 'veh_1', ...data };

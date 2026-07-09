@@ -9,6 +9,12 @@ import { VerifyPickupOtpDto } from './dto/verify-pickup-otp.dto';
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
+  // Internal boundary — the gateway decodes base64 and streams application/pdf.
+  @Get(':bookingId/invoice')
+  getInvoice(@Param('bookingId') bookingId: string) {
+    return this.bookingService.getInvoicePdf(bookingId);
+  }
+
   @Post()
   createBooking(@Body() dto: CreateBookingDto) {
     return this.bookingService.createBooking(dto);

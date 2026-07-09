@@ -18,6 +18,17 @@ export class BookingServiceClient {
     return this.http.get(`${this.baseUrl}/booking/bookings/${bookingId}`);
   }
 
+  getInvoice(bookingId: string) {
+    return this.http.get<{
+      invoiceNo: string;
+      fileName: string;
+      contentType: string;
+      base64: string;
+      passengerId: string | null;
+      driverId: string;
+    }>(`${this.baseUrl}/booking/bookings/${bookingId}/invoice`);
+  }
+
   getPassengerBookings(passengerId: string) {
     return this.http.get(`${this.baseUrl}/booking/bookings/passenger/${passengerId}`);
   }

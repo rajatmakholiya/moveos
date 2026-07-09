@@ -10,7 +10,13 @@ export class NotificationServiceClient {
     this.baseUrl = this.config.get<string>('NOTIFICATION_SERVICE_URL') ?? 'http://localhost:3005/api';
   }
 
-  registerDeviceToken(payload: { driverId: string; token: string }) {
+  registerDeviceToken(payload: {
+    token: string;
+    userId?: string;
+    driverId?: string;
+    passengerId?: string;
+    platform?: string;
+  }) {
     return this.http.post(`${this.baseUrl}/notifications/device-token`, payload);
   }
 

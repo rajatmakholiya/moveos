@@ -199,6 +199,36 @@ enum BookingStatus {
   NO_SHOW
 }
 
+enum TransportRequestType {
+  SEAT
+  FULL_VEHICLE
+  PARCEL
+}
+
+enum TransportRequestStatus {
+  REQUESTED
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum ClusterStatus {
+  OPEN
+  ASSIGNED
+  DEPARTED
+  EXPIRED
+  CANCELLED
+}
+
+enum PayoutStatus {
+  QUEUED
+  PROCESSING
+  PROCESSED
+  REVERSED
+  FAILED
+}
+
 model User {
   id                 String                  @id @default(cuid())
   phone              String                  @unique
@@ -788,8 +818,149 @@ model SeatBooking {
   arrivedAtDropoffAt DateTime?
   droppedOffAt      DateTime?
   noShowReason      String?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  // Refund audit (paise) — set when a paid booking is cancelled with refund
+  refundAmount       Int?
+  refundId           String?
+  refundedAt         DateTime?
   createdAt         DateTime       @default(now())
   invoice           InvoiceRecord?
+  rating            DriverRating?
+}
+
+model DriverRating {
+  id          String      @id @default(cuid())
+  bookingId   String      @unique
+  booking     SeatBooking @relation(fields: [bookingId], references: [id])
+  driverId    String
+  passengerId String?
+  stars       Int
+  comment     String?
+  createdAt   DateTime    @default(now())
+
+  @@index([driverId])
+}
+
+model DeviceToken {
+  id          String   @id @default(cuid())
+  userId      String?
+  driverId    String?
+  passengerId String?
+  token       String   @unique
+  platform    String? // android | ios | web
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([driverId])
+  @@index([passengerId])
+  @@index([userId])
+}
+
+model DriverPayoutProfile {
+  id                    String    @id @default(cuid())
+  driverId              String    @unique
+  accountHolderName     String
+  // Only the masked account number is stored; the full number goes to the payout provider once.
+  accountNumberMasked   String
+  ifsc                  String
+  vpa                   String?
+  providerContactId     String?
+  providerFundAccountId String?
+  verificationStatus    KycStatus @default(PENDING)
+  bankVerifiedAt        DateTime?
+  registeredName        String?
+  metadataJson          Json?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model DriverPayout {
+  id               String       @id @default(cuid())
+  driverId         String
+  amount           Int // paise
+  mode             String // IMPS | NEFT | UPI
+  status           PayoutStatus @default(QUEUED)
+  providerPayoutId String?
+  utr              String?
+  failureReason    String?
+  requestedById    String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([driverId])
+  @@index([status])
+}
+
+model TransportRequest {
+  id                 String                 @id @default(cuid())
+  type               TransportRequestType   @default(SEAT)
+  status             TransportRequestStatus @default(REQUESTED)
+  paymentStatus      PaymentStatus          @default(PENDING)
+  routeId            String?
+  fromLabel          String
+  toLabel            String
+  pickupJson         Json?
+  dropoffJson        Json?
+  requestedFor       DateTime
+  passengerId        String?
+  passengerName      String
+  passengerPhone     String
+  seats              Int                    @default(1)
+  note               String?
+  parcelDetails      String?
+  budgetPaise        Int?
+  agreedAmountPaise  Int?
+  acceptedByDriverId String?
+  // Drivers who declined — array of driver ids (kept as JSON to avoid a join table)
+  rejectedByJson     Json?
+  bookingId          String?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  clusterLinks       ClusterRequest[]
+
+  @@index([status, type])
+  @@index([passengerId])
+  @@index([acceptedByDriverId])
+  @@index([requestedFor])
+}
+
+model ClusterGroup {
+  id               String           @id @default(cuid())
+  status           ClusterStatus    @default(OPEN)
+  centroidLat      Float
+  centroidLng      Float
+  radiusKm         Float
+  destinationLabel String
+  destinationLat   Float?
+  destinationLng   Float?
+  departureFrom    DateTime
+  departureTo      DateTime
+  passengerCount   Int
+  estimatedFareMin Int // paise, per seat
+  assignedDriverId String?
+  assignedTripId   String?
+  expiresAt        DateTime
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  requests         ClusterRequest[]
+
+  @@index([status, expiresAt])
+}
+
+model ClusterRequest {
+  id        String           @id @default(cuid())
+  clusterId String
+  requestId String
+  status    String           @default("PENDING") // PENDING | CONFIRMED | DECLINED
+  cluster   ClusterGroup     @relation(fields: [clusterId], references: [id])
+  request   TransportRequest @relation(fields: [requestId], references: [id])
+  createdAt DateTime         @default(now())
+
+  @@unique([clusterId, requestId])
+  @@index([requestId])
 }
 
 model InvoiceRecord {

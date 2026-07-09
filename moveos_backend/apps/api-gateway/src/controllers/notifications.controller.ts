@@ -11,7 +11,12 @@ export class NotificationsController {
 
   @Post('device-token')
   register(@Req() req: any, @Body() body: DeviceTokenDto) {
-    const driverId = req.user?.driverId ?? req.user?.passengerId ?? req.user?.sub;
-    return this.notificationClient.registerDeviceToken({ driverId, token: body.token });
+    return this.notificationClient.registerDeviceToken({
+      token: body.token,
+      userId: req.user?.sub,
+      driverId: req.user?.driverId ?? undefined,
+      passengerId: req.user?.passengerId ?? undefined,
+      platform: body.platform,
+    });
   }
 }

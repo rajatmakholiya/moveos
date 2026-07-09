@@ -116,7 +116,8 @@ async function main() {
     assert.ok(Array.isArray(result.data.missingRequiredFields), 'missingRequiredFields is array');
     assert.ok(result.data.missingRequiredFields.length > 0, 'empty driver has missing fields');
     assert.ok(result.data.missingRequiredDocuments.includes('DRIVING_LICENSE'), 'DRIVING_LICENSE in missing docs');
-    assert.ok(result.data.missingRequiredDocuments.includes('AADHAAR'), 'AADHAAR in missing docs');
+    // AADHAAR is optional — only DRIVING_LICENSE is mandatory (BASE_MANDATORY_DOCUMENT_TYPES)
+    assert.ok(!result.data.missingRequiredDocuments.includes('AADHAAR'), 'AADHAAR is not a required doc');
     assert.equal(result.data.nextStep, 'COMPLETE_PROFILE', 'nextStep is COMPLETE_PROFILE when fields missing');
   }
 
@@ -226,54 +227,49 @@ async function main() {
     assert.ok(!('documentUrl' in result.data.document), 'raw documentUrl not exposed in response (normalized to frontFileId)');
   }
 
-  // ── POST /documents — updates existing pending document (no duplicate) ─────
-
-  {
-    const updates: any[] = [];
-    const c = controller({
-      driver: { findUnique: async () => fullDriver() },
-      kycRecord: {
-        findFirst: async () => kycStub({ status: 'PENDING' }),
-        update: async ({ data }: any) => { updates.push(data); return { ...kycStub(), ...data }; },
-      },
-    });
-
-    await c.upsertDocument(driverReq(), { documentType: 'DRIVING_LICENSE', frontFileId: 'https://example.com/new_front.jpg' });
-    assert.equal(updates.length, 1, 'updated existing, did not create duplicate');
-    assert.equal(updates[0].documentUrl, 'https://example.com/new_front.jpg', 'new frontFileId stored');
-    assert.equal(updates[0].status, 'PENDING', 'status reset to PENDING on update');
-    assert.equal(updates[0].rejectionReason, null, 'rejectionReason cleared on update');
-  }
-
-  // ── POST /documents — also updates rejected documents ─────────────────────
-
-  {
-    const updates: any[] = [];
-    const c = controller({
-      driver: { findUnique: async () => fullDriver() },
-      kycRecord: {
-        findFirst: async () => kycStub({ status: 'REJECTED', rejectionReason: 'Blurry image' }),
-        update: async ({ data }: any) => { updates.push(data); return { ...kycStub(), ...data, status: 'PENDING' }; },
-      },
-    });
-
-    const result = await c.upsertDocument(driverReq(), { documentType: 'DRIVING_LICENSE', frontFileId: 'https://example.com/clear_front.jpg' });
-    assert.equal(updates[0].status, 'PENDING', 'rejected doc can be resubmitted');
-    assert.equal(result.data.document.status, 'PENDING', 'returned document is PENDING');
-  }
-
-  // ── POST /documents — blocks overwrite of approved document ───────────────
+  // ── POST /documents — re-submitting an existing document type is rejected ──
+  // (current policy: resubmission = DELETE the old record, then POST fresh)
 
   {
     const c = controller({
       driver: { findUnique: async () => fullDriver() },
-      kycRecord: { findFirst: async () => kycStub({ status: 'APPROVED' }) },
+      kycRecord: { findFirst: async () => kycStub({ status: 'PENDING' }) },
     });
 
     await assert.rejects(
-      () => c.upsertDocument(driverReq(), { documentType: 'DRIVING_LICENSE', frontFileId: 'https://example.com/new.jpg' }),
-      (err: any) => err.response?.error_code === 'document_already_approved',
-      'approved document cannot be overwritten',
+      () => c.upsertDocument(driverReq(), { documentType: 'DRIVING_LICENSE', documentNumber: 'DL0420110012345', expiryDate: '2030-01-01', frontFileId: 'https://example.com/new_front.jpg' }),
+      (err: any) => err.response?.error_code === 'document_already_submitted',
+      'existing document blocks duplicate submission',
+    );
+  }
+
+  // ── DELETE /documents/:id — rejected doc can be deleted for resubmission ───
+
+  {
+    let deleted = false;
+    const c = controller({
+      kycRecord: {
+        findUnique: async () => kycStub({ status: 'REJECTED', rejectionReason: 'Blurry image' }),
+        delete: async () => { deleted = true; return {}; },
+      },
+    });
+
+    const result = await c.deleteDocument(driverReq(), 'kyc_1');
+    assert.equal(result.data.deleted, true, 'rejected doc deleted (enables resubmission)');
+    assert.ok(deleted, 'kycRecord.delete called');
+  }
+
+  // ── DELETE /documents/:id — approved documents cannot be deleted ───────────
+
+  {
+    const c = controller({
+      kycRecord: { findUnique: async () => kycStub({ status: 'APPROVED' }) },
+    });
+
+    await assert.rejects(
+      () => c.deleteDocument(driverReq(), 'kyc_1'),
+      (err: any) => err.response?.error_code === 'document_approved_cannot_delete',
+      'approved document cannot be deleted',
     );
   }
 
@@ -440,7 +436,8 @@ async function main() {
     assert.equal(updates[0].status, 'PENDING_COMPLIANCE', 'status is exactly PENDING_COMPLIANCE');
   }
 
-  // ── POST /submit — no org mapping throws ─────────────────────────────────
+  // ── POST /submit — independent driver (no org mapping) is a valid path, ────
+  // but still requires the mandatory documents before submitting
 
   {
     const c = controller({
@@ -451,8 +448,8 @@ async function main() {
 
     await assert.rejects(
       () => c.submitOnboarding(driverReq()),
-      (err: any) => err.response?.error_code === 'no_org_mapping',
-      'submit fails with no_org_mapping when no OrganizationDriver exists',
+      (err: any) => err.response?.error_code === 'missing_required_documents',
+      'independent submit without documents fails on missing_required_documents',
     );
   }
 

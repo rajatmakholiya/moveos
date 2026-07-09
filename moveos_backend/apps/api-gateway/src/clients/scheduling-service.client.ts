@@ -67,4 +67,42 @@ export class SchedulingServiceClient {
       headers: { 'x-driver-id': driverId },
     });
   }
+
+  // ── Clusters ─────────────────────────────────────────────────────────────
+
+  listClusters(lat?: string, lng?: string) {
+    return this.http.get(`${this.baseUrl}/scheduling/clusters`, { params: { lat, lng } });
+  }
+
+  listAllClusters() {
+    return this.http.get(`${this.baseUrl}/scheduling/clusters/all`);
+  }
+
+  runClustering() {
+    return this.http.post(`${this.baseUrl}/scheduling/clusters/run`);
+  }
+
+  acceptCluster(driverId: string, clusterId: string, body: { vehicleId?: string; routeId?: string }) {
+    return this.http.post(`${this.baseUrl}/scheduling/clusters/${clusterId}/accept`, body, {
+      headers: { 'x-driver-id': driverId },
+    });
+  }
+
+  rejectCluster(driverId: string, clusterId: string) {
+    return this.http.post(`${this.baseUrl}/scheduling/clusters/${clusterId}/reject`, undefined, {
+      headers: { 'x-driver-id': driverId },
+    });
+  }
+
+  listPassengerClusters(passengerId: string) {
+    return this.http.get(`${this.baseUrl}/scheduling/clusters/passenger/${passengerId}`);
+  }
+
+  confirmCluster(passengerId: string, clusterId: string, confirm: boolean) {
+    return this.http.post(
+      `${this.baseUrl}/scheduling/clusters/${clusterId}/confirm`,
+      { confirm },
+      { headers: { 'x-passenger-id': passengerId } },
+    );
+  }
 }

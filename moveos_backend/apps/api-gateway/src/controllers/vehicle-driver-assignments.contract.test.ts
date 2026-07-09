@@ -285,7 +285,14 @@ async function main() {
     const c = controller({
       driverVehicleAssignment: {
         findUnique: async () => null,
-        findFirst: async () => makeAssignment({ id: 'old_asgn', driverId: 'drv_old', assignmentType: 'PRIMARY' }),
+        // The controller runs two findFirst lookups: (1) is the new driver active on
+        // another vehicle? (no) and (2) does this vehicle already have a PRIMARY? (yes)
+        findFirst: async ({ where }: any) => {
+          if (where?.assignmentType === 'PRIMARY' && where?.vehicleId === 'veh_1') {
+            return makeAssignment({ id: 'old_asgn', driverId: 'drv_old', assignmentType: 'PRIMARY' });
+          }
+          return null;
+        },
         update: async ({ where, data }: any) => {
           if (data.status === AssignmentStatus.ENDED) endedId = where.id;
           return makeAssignment({ id: where.id, ...data });

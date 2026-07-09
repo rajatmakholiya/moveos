@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, setUnauthorizedHandler, setRefreshHandler } from './api';
+import { isPushConfigured, registerPushToken } from './push';
 
 export type UserRole = 'PASSENGER' | 'DRIVER' | 'AGENT' | 'ADMIN';
 
@@ -162,6 +163,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(logout);
     return () => setUnauthorizedHandler(null);
   }, [logout]);
+
+  // Best-effort push registration once authenticated. No-op unless the
+  // NEXT_PUBLIC_FIREBASE_* env vars are configured.
+  useEffect(() => {
+    if (!token || !user || !isPushConfigured()) return;
+    void registerPushToken(token);
+  }, [token, user]);
 
   useEffect(() => {
     const handler = async (): Promise<string | null> => {

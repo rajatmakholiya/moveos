@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard, Roles, RolesGuard } from '@common/index';
 import { BookingServiceClient } from '../clients/booking-service.client';
 import { NotificationServiceClient } from '../clients/notification-service.client';
@@ -31,6 +32,24 @@ export class BookingsController {
   @Get(':bookingId')
   getBooking(@Param('bookingId') bookingId: string) {
     return this.bookingClient.getBooking(bookingId);
+  }
+
+  // Invoice download — the booking's passenger, the trip's driver, or an admin.
+  @Get(':bookingId/invoice')
+  async getInvoice(@Req() req: any, @Param('bookingId') bookingId: string, @Res() res: Response) {
+    const invoice = await this.bookingClient.getInvoice(bookingId);
+    const role = req.user?.role;
+    const isOwner =
+      (req.user?.passengerId && req.user.passengerId === invoice.passengerId) ||
+      (req.user?.driverId && req.user.driverId === invoice.driverId);
+    if (!isOwner && role !== 'SUPER_ADMIN' && role !== 'ORG_ADMIN' && role !== 'ADMIN') {
+      throw new ForbiddenException('You do not have access to this invoice');
+    }
+    const pdf = Buffer.from(invoice.base64, 'base64');
+    res.setHeader('Content-Type', invoice.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${invoice.fileName}"`);
+    res.setHeader('Content-Length', String(pdf.length));
+    res.end(pdf);
   }
 
   @Roles('PASSENGER')

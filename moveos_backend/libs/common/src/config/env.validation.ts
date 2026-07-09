@@ -69,6 +69,83 @@ class EnvironmentVariables {
   @IsOptional()
   @IsNumberString()
   LOCATION_CACHE_TTL_SECONDS?: string;
+
+  // ── External provider selection (see libs/common/src/providers) ──────────
+  @IsOptional()
+  @IsString()
+  SMS_PROVIDER?: string; // dev | msg91
+
+  @IsOptional()
+  @IsString()
+  MSG91_AUTH_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  MSG91_OTP_TEMPLATE_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  MSG91_FLOW_TEMPLATE_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  MSG91_SENDER_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  PUSH_PROVIDER?: string; // dev | fcm
+
+  @IsOptional()
+  @IsString()
+  FCM_PROJECT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  FCM_CLIENT_EMAIL?: string;
+
+  @IsOptional()
+  @IsString()
+  FCM_PRIVATE_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  KYC_PROVIDER?: string; // dev | hyperverge
+
+  @IsOptional()
+  @IsString()
+  HYPERVERGE_APP_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  HYPERVERGE_APP_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  HYPERVERGE_BASE_URL?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  KYC_FACE_MATCH_THRESHOLD?: string;
+
+  @IsOptional()
+  @IsString()
+  PAYOUT_PROVIDER?: string; // dev | razorpayx
+
+  @IsOptional()
+  @IsString()
+  RAZORPAYX_KEY_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  RAZORPAYX_KEY_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  RAZORPAYX_ACCOUNT_NUMBER?: string;
+
+  @IsOptional()
+  @IsString()
+  ALLOW_DEV_PROVIDERS_IN_PRODUCTION?: string;
 }
 
 const INSECURE_JWT_SECRETS = new Set(['supersecret', 'replace-with-secure-secret', 'changeme', 'secret', 'password']);

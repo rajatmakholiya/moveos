@@ -1,10 +1,37 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { DriverService } from './driver.service';
+import { PayoutService } from './payout.service';
 import { ActivateVehicleDto, CreateVehicleDto, DriverIdDto, DriverDocumentDto, DocumentUploadRequestDto, SelectOperatingContextDto, SubmitDriverKycDto, VehicleDocumentDto } from './dto/driver.dto';
+import { RequestPayoutDto, SetupPayoutProfileDto } from './dto/payout.dto';
 
 @Controller('drivers')
 export class DriverController {
-  constructor(private readonly driverService: DriverService) {}
+  constructor(
+    private readonly driverService: DriverService,
+    private readonly payoutService: PayoutService,
+  ) {}
+
+  // ── Payouts ────────────────────────────────────────────────────────────────
+
+  @Post(':driverId/payout-profile')
+  setupPayoutProfile(@Param('driverId') driverId: string, @Body() body: SetupPayoutProfileDto) {
+    return this.payoutService.setupPayoutProfile(driverId, body);
+  }
+
+  @Get(':driverId/payout-profile')
+  getPayoutProfile(@Param('driverId') driverId: string) {
+    return this.payoutService.getPayoutProfile(driverId);
+  }
+
+  @Post(':driverId/payouts')
+  requestPayout(@Param('driverId') driverId: string, @Body() body: RequestPayoutDto) {
+    return this.payoutService.requestPayout(driverId, body);
+  }
+
+  @Get(':driverId/payouts')
+  listPayouts(@Param('driverId') driverId: string) {
+    return this.payoutService.listPayouts(driverId);
+  }
 
   @Post('go-online')
   goOnline(@Body() body: DriverIdDto) {
@@ -34,6 +61,11 @@ export class DriverController {
   @Get(':driverId/wallet')
   walletBalance(@Param('driverId') driverId: string) {
     return this.driverService.getWalletBalance(driverId);
+  }
+
+  @Get(':driverId/wallet/ledger')
+  walletLedger(@Param('driverId') driverId: string) {
+    return this.driverService.getWalletLedger(driverId);
   }
 
   @Get(':driverId/vehicles')

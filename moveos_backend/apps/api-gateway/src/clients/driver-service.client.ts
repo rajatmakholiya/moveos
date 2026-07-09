@@ -79,4 +79,25 @@ export class DriverServiceClient {
   submitKyc(driverId: string, body: object) {
     return this.http.post(`${this.baseUrl}/drivers/${driverId}/kyc`, body);
   }
+
+  getWalletLedger(driverId: string) {
+    return this.http.get(`${this.baseUrl}/drivers/${driverId}/wallet/ledger`);
+  }
+
+  // Payouts
+  setupPayoutProfile(driverId: string, body: object) {
+    return this.http.post(`${this.baseUrl}/drivers/${driverId}/payout-profile`, body);
+  }
+
+  getPayoutProfile(driverId: string) {
+    return this.http.get(`${this.baseUrl}/drivers/${driverId}/payout-profile`);
+  }
+
+  requestPayout(driverId: string, body: object) {
+    return this.http.post(`${this.baseUrl}/drivers/${driverId}/payouts`, body);
+  }
+
+  listPayouts(driverId: string) {
+    return this.http.get(`${this.baseUrl}/drivers/${driverId}/payouts`);
+  }
 }

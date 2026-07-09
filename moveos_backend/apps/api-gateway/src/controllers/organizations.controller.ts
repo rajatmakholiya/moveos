@@ -1748,10 +1748,25 @@ export class OrganizationsController {
   @Get('organizations/:organizationId/clusters')
   async listOrganizationClusters(@Req() req: any, @Param('organizationId') organizationId: string) {
     await this.requireOrgOrAdminAccess(req.user, organizationId);
-    throw new HttpException(
-      { statusCode: 501, errorCode: 'cluster_management_not_implemented', message: 'Cluster management is not yet implemented' },
-      HttpStatus.NOT_IMPLEMENTED,
-    );
+    // Org view: open clusters (available to their fleet) + clusters already
+    // assigned to one of this organization's drivers.
+    const orgDrivers = await this.prisma.organizationDriver.findMany({
+      where: { organizationId },
+      select: { driverId: true },
+    });
+    const driverIds = orgDrivers.map((link) => link.driverId);
+    const clusters = await (this.prisma as any).clusterGroup.findMany({
+      where: {
+        OR: [
+          { status: 'OPEN', expiresAt: { gt: new Date() } },
+          ...(driverIds.length > 0 ? [{ assignedDriverId: { in: driverIds } }] : []),
+        ],
+      },
+      include: { requests: { select: { requestId: true, status: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    return { status: 'ok', data: { clusters } };
   }
 
   @UseGuards(JwtAuthGuard)

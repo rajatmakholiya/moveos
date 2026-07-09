@@ -8,7 +8,7 @@ export class NotificationController {
 
   @Post('device-token')
   register(@Body() body: DeviceTokenDto) {
-    return this.notificationService.registerDevice(body.driverId, body.token);
+    return this.notificationService.registerDevice(body);
   }
 
   @Post('drop-off')

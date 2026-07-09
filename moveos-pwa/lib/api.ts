@@ -42,7 +42,17 @@ function resolveApiBase(): string {
   return url.replace(/\/$/, '');
 }
 
-const API_BASE = resolveApiBase();
+// Resolved lazily (first request) rather than at module scope — `next build`
+// imports this file while prerendering pages, and a missing NEXT_PUBLIC_API_URL
+// must fail loudly at runtime, not break the build.
+let apiBaseCache: string | null = null;
+function getApiBase(): string {
+  if (apiBaseCache === null) {
+    apiBaseCache = resolveApiBase();
+  }
+  return apiBaseCache;
+}
+
 const RETRY_DELAY_MS = 1000;
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 let refreshHandler: RefreshHandler | null = null;
@@ -68,7 +78,7 @@ function buildUrl(path: string) {
     return path;
   }
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${API_BASE}${normalizedPath}`;
+  return `${getApiBase()}${normalizedPath}`;
 }
 
 function readStoredToken() {
@@ -238,8 +248,34 @@ function getRequest<T>(path: string, token?: string): Promise<T> {
   return promise;
 }
 
+/** Authenticated binary download (e.g. invoice PDFs). Returns the blob and server-suggested filename. */
+async function getBlobRequest(path: string, token?: string): Promise<{ blob: Blob; fileName: string | null }> {
+  const authToken = token ?? readStoredToken();
+  const headers = new Headers();
+  if (authToken) {
+    headers.set('Authorization', `Bearer ${authToken}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path), { method: 'GET', headers, cache: 'no-store' });
+  } catch {
+    throw { code: 'NETWORK_ERROR', message: 'No internet connection' } satisfies ApiError;
+  }
+
+  if (!response.ok) {
+    const payload = await parseResponse(response);
+    throw toApiError(payload, response.status);
+  }
+
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const fileNameMatch = /filename="?([^";]+)"?/i.exec(disposition);
+  return { blob: await response.blob(), fileName: fileNameMatch?.[1] ?? null };
+}
+
 export const api = {
   get: <T>(path: string, token?: string) => getRequest<T>(path, token),
+  getBlob: (path: string, token?: string) => getBlobRequest(path, token),
   post: <T>(path: string, body: unknown, token?: string) => request<T>('POST', path, body, token),
   put: <T>(path: string, body: unknown, token?: string) => request<T>('PUT', path, body, token),
   patch: <T>(path: string, body: unknown, token?: string) => request<T>('PATCH', path, body, token),

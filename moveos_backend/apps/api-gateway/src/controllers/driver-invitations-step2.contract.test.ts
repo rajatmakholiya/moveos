@@ -5,8 +5,16 @@ import { OrganizationDriverStatus, UserRole } from '@prisma/client';
 // Minimal JwtService stub
 const jwtStub = { sign: (_payload: unknown, _opts?: unknown) => 'mock_jwt_token' };
 
+// Minimal SmsProvider stub (dev-like: no real delivery, so devOtpCode is surfaced)
+const smsStub = {
+  name: 'dev',
+  deliversRealSms: false,
+  sendOtp: async () => ({ delivered: true, provider: 'dev' }),
+  sendMessage: async () => ({ delivered: true, provider: 'dev' }),
+};
+
 function controller(prisma: any) {
-  return new DriverInvitationsController(prisma, jwtStub as any) as any;
+  return new DriverInvitationsController(prisma, jwtStub as any, smsStub as any) as any;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
